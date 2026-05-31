@@ -1,30 +1,68 @@
-export default function SpinningCard() {
-    const featureCards = [
-    { icon: "ti-coin",      img: "/images/budget.jpg",   title: "Under $5 meals",      desc: "Eat well without breaking the bank" },
-  { icon: "ti-clock",     img: "/images/quick.jpg",    title: "10-minute meals",      desc: "Fast recipes for busy days" },
-  { icon: "ti-microwave", img: "/images/microwave.jpg",title: "Microwave-only meals", desc: "No stove or oven needed" },
-  { icon: "ti-barbell",   img: "/images/protein.jpg",  title: "High-protein meals",   desc: "Fuel your body and goals" },
+import Autoplay from "embla-carousel-autoplay"
+import { useRef } from "react"
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel"
+
+
+
+
+const featureCards = [
+    {
+    icon: "ti-coin",
+    title: "Under $5 meals",
+    desc: "Eat well without breaking the bank",
+    image: "https://spoonacular.com/recipeImages/716429-312x231.jpg"
+  },
+  {
+    icon: "ti-clock",
+    title: "10-minute meals",
+    desc: "Fast recipes for busy days",
+    image: "https://spoonacular.com/recipeImages/640803-312x231.jpg"
+  },
+  {
+    icon: "ti-microwave",
+    title: "Microwave-only meals",
+    desc: "No stove or oven needed",
+    image: "https://spoonacular.com/recipeImages/649931-312x231.jpg"
+  },
+  {
+    icon: "ti-barbell",
+    title: "High-protein meals",
+    desc: "Fuel your body and goals",
+    image: "https://spoonacular.com/recipeImages/715415-312x231.jpg"
+  },
     ]
-    
-    return(
-       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-      {featureCards.map((f) => (
-        <div key={f.title} className="relative rounded-2xl overflow-hidden h-48 cursor-pointer group">
-          <img
-            src={f.img}
-            alt={f.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-          />
-          <div className="absolute bottom-0 left-0 right-0 p-3 bg-black/50 backdrop-blur-md">
-            <div className="flex items-center gap-2 mb-1">
-              <i className={`ti ${f.icon} text-white text-sm`} />
-              <span className="text-white text-sm font-medium">{f.title}</span>
+export default function SpinningCard() {
+   const plugin = useRef(Autoplay({ delay: 3000, stopOnInteraction: true }))
+
+      return (
+  <Carousel className="p-4"  plugins={[plugin.current]}>
+      <CarouselContent>
+        {featureCards.map((slide) => (
+          <CarouselItem key={slide.title} className="md:basis-1/2 lg:basis-1/3">
+            <div className="relative rounded-2xl overflow-hidden h-72">
+              <img
+                src={slide.image}
+                alt={slide.title}
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute bottom-0 left-0 right-0 p-5 bg-black/50 backdrop-blur-md">
+                <p className="text-white font-medium text-lg">{slide.title}</p>
+                <p className="text-white/75 text-sm">{slide.desc}</p>
+              </div>
             </div>
-            <p className="text-white/75 text-xs leading-snug">{f.desc}</p>
-          </div>
-        </div>
-      ))}
-    </div>
+          </CarouselItem>
+        ))}
+      </CarouselContent>
+      <CarouselPrevious />
+      <CarouselNext />
+    </Carousel>
   )
+  
 }
     
