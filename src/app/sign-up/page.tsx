@@ -1,11 +1,9 @@
 "use client"
-
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import Link from "next/link"
 import {
     Card,
     CardContent,
@@ -13,37 +11,42 @@ import {
     CardTitle,
     CardDescription,
 } from "@/components/ui/card"
+import Link from "next/link"
+export default function SignUp() {
+    const [email, setEmail] = useState("")
+    const [password, setPassword]= useState("")
+    const [confirmPassword, setConfirmPassword]= useState("")
+    const [loading, setLoading] = useState(false)
 
-export default function SignInPage() {
+    const [error, setError] = useState("")
 
- const [email, setEmail] = useState("")
-    const [password, setPassword] = useState("")
+    async function handleAuth() {
+    if (password !== confirmPassword) {
+    setError("Passwords don't match")
+    return
+  } 
 
-
-     async function handleAuth() {
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
     if (error) {
-      alert(error.message);
+    setError(error.message);
       return;
     }
 
-    alert("Logged in!");
+    alert("Thank you for signing up");
   }
-
-   
-
-
-     
-    return(
-        <>
+  return(
+      <>
         <div className = "min-h-screen flex justify-center items-center">
+    
     <Card className = "w-full max-w-xl rounded-2xl shadow-sm opacity-50 focus:ring">
+        <p>{error}</p>
         <CardHeader className="pb-10 flex flex-col justify-center items-center">
-            <CardTitle> Sign in</CardTitle>
+            <Link href="sign-in">{"<- Go back to login"}</Link>
+            <CardTitle> Sign Up</CardTitle>
             <CardDescription> "Welcome back to BrokeBites."
             </CardDescription>
         </CardHeader>
@@ -62,7 +65,16 @@ export default function SignInPage() {
         placeholder="Enter password"
         value = {password}
         onChange = {(e) => setPassword(e.target.value)}
-        required/>
+        required
+        />
+
+        <Input
+        type="password"
+        placeholder="Confirm password"
+        value = {confirmPassword}
+        onChange = {(e) => setConfirmPassword(e.target.value)}
+        required
+        />
 
          <Button
   onClick={handleAuth}
@@ -76,5 +88,5 @@ export default function SignInPage() {
          </Card>
          </div>
     </>
-    )
+  )
 }
