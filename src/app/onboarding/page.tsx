@@ -1,6 +1,6 @@
 "use client"
-
-import { useState } from "react";
+import { supabase } from "@/lib/supabase";
+import { useEffect, useState } from "react";
 
 const equipmentOptions = [
   "Microwave",
@@ -42,7 +42,21 @@ export default function OnboardingPage(){
   const [goals, setGoals] = useState<string[]>([]);
   const [dietaryNeeds, setDietaryNeeds] = useState<string[]>([]);
   const [stores, setStores] = useState<string[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [checkingUser, setCheckingUser] = useState(true);
 
+  useEffect(()=>{
+    async function checkUser() {
+        const {data} = await supabase.auth.getUser();
+
+        if(!data.user){
+            window.location.href="/sign-in";
+            return;
+        }
+    }    setCheckingUser(false);
+
+    checkUser();
+  },[])
     function toggleOption(
     value: string,
     selectedValues: string[],
@@ -54,6 +68,50 @@ export default function OnboardingPage(){
       setSelectedValues([...selectedValues, value]);
     }
   }
+  async function handleFinishSetup() {
+  setSaving(true);
+
+  const { data: userData, error: userError } = await supabase.auth.getUser();
+
+  if (userError || !userData.user) {
+    alert("You need to be logged in first.");
+    window.location.href = "/login";
+    return;
+  }
+
+  const { error } = await supabase.from("profiles").upsert({
+    id: userData.user.id,
+    email: userData.user.email,
+    equipment,
+    goals,
+    dietary_needs: dietaryNeeds,
+    stores,
+    onboarding_completed: true,
+    updated_at: new Date().toISOString(),
+  });
+
+  setSaving(false);
+
+  if (error) {
+    alert(error.message);
+    return;
+  }
+
+  window.location.href = "/dashboard";
+}
+if (checkingUser) {
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-orange-50 px-6">
+      <section className="rounded-3xl bg-white p-8 text-center shadow-sm">
+        <p className="text-sm font-semibold text-orange-600">BrokeBites</p>
+
+        <h1 className="mt-2 text-2xl font-bold text-gray-950">
+          Checking your account...
+        </h1>
+      </section>
+    </main>
+  );
+}
 return (
     <main className="min-h-screen bg-orange-50 px-6 py-10">
       <section className="mx-auto max-w-4xl">
@@ -114,21 +172,13 @@ return (
               You can change these later in settings.
             </p>
 
-            <button
-              onClick={() => {
-                console.log({
-                  equipment,
-                  goals,
-                  dietaryNeeds,
-                  stores,
-                });
-
-                window.location.href = "/dashboard";
-              }}
-              className="rounded-xl bg-orange-500 px-6 py-3 font-semibold text-white transition hover:bg-orange-600"
-            >
-              Finish setup
-            </button>
+           <button
+  onClick={handleFinishSetup}
+  disabled={saving}
+  className="rounded-xl bg-orange-500 px-6 py-3 font-semibold text-white transition hover:bg-orange-600 disabled:opacity-60"
+>
+  {saving ? "Saving..." : "Finish setup"}
+</button>
           </div>
         </div>
       </section>
