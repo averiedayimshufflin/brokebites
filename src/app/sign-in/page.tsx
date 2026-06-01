@@ -16,23 +16,20 @@ import {
 
 export default function SignInPage() {
 
- const [email, setEmail] = useState("")
-    const [password, setPassword] = useState("")
 
+async function handleGoogleLogin() {
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: `${window.location.origin}/dashboard`,
+    },
+  });
 
-     async function handleAuth() {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (error) {
-      alert(error.message);
-      return;
-    }
-
-    alert("Logged in!");
+  if (error) {
+    alert(error.message);
   }
+}
+  
 
    
 
@@ -48,33 +45,17 @@ export default function SignInPage() {
             </CardDescription>
         </CardHeader>
         <CardContent className = "flex flex-col gap-4">
-
-        <Input
-        type="email"
-        placeholder="Enter your email"
-        value = {email}
-        onChange = {(e) => setEmail(e.target.value)}
-        required
-        />
-
-        <Input
-        type="password"
-        placeholder="Enter password"
-        value = {password}
-        onChange = {(e) => setPassword(e.target.value)}
-        required/>
-
-         <Button
-  onClick={handleAuth}
-  className="w-full rounded-xl bg-orange-500 px-4 py-3 font-semibold text-white transition hover:bg-orange-600"
+        <Button
+  type="button"
+  variant="outline"
+  className="w-full"
+  onClick={handleGoogleLogin}
 >
-  Log in
+  Continue with Google
 </Button>
-
-<p>Don't have an account? <Link href="/sign-up">Sign up</Link></p>
         </CardContent>
-         </Card>
-         </div>
+        </Card>
+        </div>
     </>
     )
 }
