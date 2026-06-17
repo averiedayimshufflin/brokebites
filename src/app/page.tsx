@@ -40,12 +40,7 @@ export default function Home() {
               <span>Smartbot</span>
             </div>
 
-            <button
-              type="button"
-              className="rounded-full bg-[#101010] px-5 py-2 text-xs font-semibold text-white transition duration-300 hover:bg-[#238247]"
-            >
-              Start
-            </button>
+           
           </nav>
 
           <div className="relative z-10 grid items-end gap-10 lg:grid-cols-[1.1fr_0.9fr]">
