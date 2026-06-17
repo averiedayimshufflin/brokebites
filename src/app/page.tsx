@@ -18,7 +18,7 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen overflow-hidden bg-[#F8F4EC] font-sans text-[#151515]">
+    <main className="min-h-screen overflow-hidden bg-[#F8F4EC] font-[family-name:var(--font-inter)] text-[#151515]">
       <section className="mx-auto w-full max-w-[1440px] px-4 py-4 sm:px-6 lg:px-10">
         <motion.div
           initial={{ opacity: 0, y: -24 }}
@@ -63,7 +63,7 @@ export default function Home() {
                 initial={{ opacity: 0, y: 22 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.25, duration: 0.75, ease: "easeOut" }}
-                className="font-display text-6xl font-semibold leading-[0.88] tracking-[-0.06em] text-white sm:text-7xl md:text-8xl lg:text-[9rem]"
+                className="font-[family-name:var(--font-playfair)] text-6xl font-semibold leading-[0.88] tracking-[-0.06em] text-white sm:text-7xl md:text-8xl lg:text-[9rem]"
               >
                 Eat Smart.
                 <br />
@@ -95,7 +95,7 @@ export default function Home() {
         </motion.div>
       </section>
 
-      <section className="mx-auto grid w-full max-w-[1440px] gap-8 px-4 pb-20 pt-8 sm:px-6 lg:grid-cols-[0.95fr_1.05fr] lg:px-10">
+      <section className="mx-auto grid w-full max-w-[1440px] items-start gap-8 px-4 pb-24 pt-8 sm:px-6 lg:grid-cols-[0.95fr_1.05fr] lg:px-10">
         <motion.div
           variants={fadeUp}
           initial="hidden"
@@ -109,7 +109,7 @@ export default function Home() {
                 Browse meals
               </p>
 
-              <h2 className="font-display text-4xl font-semibold leading-[0.95] tracking-[-0.045em] text-[#171717] sm:text-5xl">
+              <h2 className="font-[family-name:var(--font-playfair)] text-4xl font-semibold leading-[0.95] tracking-[-0.045em] text-[#171717] sm:text-5xl">
                 Pick the food that fits your pantry
               </h2>
             </div>
@@ -133,17 +133,26 @@ export default function Home() {
           initial="hidden"
           animate="visible"
           transition={{ delay: 0.7, duration: 0.7, ease: "easeOut" }}
-          className="rounded-[2rem] border border-black/5 bg-[#EAF5EC] p-6 shadow-[0_24px_70px_rgba(35,130,71,0.12)] sm:p-8"
+          className="relative overflow-hidden rounded-[2rem] border border-black/5 bg-[#EAF5EC] p-6 shadow-[0_24px_70px_rgba(35,130,71,0.12)] sm:p-8"
         >
-          <div className="mb-10 flex items-start justify-between gap-6">
+          <div className="absolute right-[-80px] top-[-80px] h-56 w-56 rounded-full bg-[#238247]/10 blur-3xl" />
+          <div className="absolute bottom-[-90px] left-[-90px] h-64 w-64 rounded-full bg-[#FF7A1A]/10 blur-3xl" />
+
+          <div className="relative z-10 mb-10 flex items-start justify-between gap-6">
             <div>
               <p className="mb-3 text-xs font-semibold uppercase tracking-[0.24em] text-[#FF7A1A]">
-                Join the kitchen
+                BrokeBites plan
               </p>
 
-              <h2 className="font-display text-4xl font-semibold leading-[0.95] tracking-[-0.045em] text-[#171717] sm:text-5xl">
-                Save meals, plan smarter, cook better
+              <h2 className="font-[family-name:var(--font-playfair)] text-4xl font-semibold leading-[0.95] tracking-[-0.045em] text-[#171717] sm:text-5xl">
+                Plan smarter meals with what you already have
               </h2>
+
+              <p className="mt-5 max-w-xl text-sm font-medium leading-7 text-[#3f4f43]">
+                BrokeBites helps students and budget-conscious cooks turn
+                pantry items into affordable recipe ideas, save favorites, and
+                get quick help from a smart recipe assistant.
+              </p>
             </div>
 
             <div className="hidden rounded-full bg-white px-4 py-2 text-xs font-semibold text-[#238247] shadow-sm sm:block">
@@ -151,13 +160,165 @@ export default function Home() {
             </div>
           </div>
 
-          <motion.div
-            whileHover={{ y: -6 }}
-            transition={{ type: "spring", stiffness: 220, damping: 20 }}
-            className="rounded-[1.5rem] border border-green-100 bg-white p-5"
-          >
-            <SignUpComponent />
-          </motion.div>
+          <div className="relative z-10 mb-8 grid gap-4 sm:grid-cols-2">
+            <motion.div
+              whileHover={{ y: -4 }}
+              transition={{ type: "spring", stiffness: 220, damping: 20 }}
+              className="rounded-2xl border border-green-100 bg-white/80 p-4 shadow-sm"
+            >
+              <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-[#238247] text-sm font-bold text-white">
+                1
+              </div>
+
+              <h3 className="font-semibold text-[#151515]">
+                Pantry-first recipes
+              </h3>
+
+              <p className="mt-2 text-sm leading-6 text-[#5b665d]">
+                Enter ingredients like rice, beans, or eggs and see meals that
+                match what you already own.
+              </p>
+            </motion.div>
+
+            <motion.div
+              whileHover={{ y: -4 }}
+              transition={{ type: "spring", stiffness: 220, damping: 20 }}
+              className="rounded-2xl border border-green-100 bg-white/80 p-4 shadow-sm"
+            >
+              <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-[#FF7A1A] text-sm font-bold text-white">
+                2
+              </div>
+
+              <h3 className="font-semibold text-[#151515]">
+                Budget meal planning
+              </h3>
+
+              <p className="mt-2 text-sm leading-6 text-[#5b665d]">
+                Focus on cheap, filling meals that are practical for students,
+                roommates, and busy weekly routines.
+              </p>
+            </motion.div>
+
+            <motion.div
+              whileHover={{ y: -4 }}
+              transition={{ type: "spring", stiffness: 220, damping: 20 }}
+              className="rounded-2xl border border-green-100 bg-white/80 p-4 shadow-sm"
+            >
+              <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-[#238247] text-sm font-bold text-white">
+                3
+              </div>
+
+              <h3 className="font-semibold text-[#151515]">Smartbot help</h3>
+
+              <p className="mt-2 text-sm leading-6 text-[#5b665d]">
+                Ask for meal ideas, substitutions, or quick recipe suggestions
+                based on your pantry and preferences.
+              </p>
+            </motion.div>
+
+            <motion.div
+              whileHover={{ y: -4 }}
+              transition={{ type: "spring", stiffness: 220, damping: 20 }}
+              className="rounded-2xl border border-green-100 bg-white/80 p-4 shadow-sm"
+            >
+              <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-[#FF7A1A] text-sm font-bold text-white">
+                4
+              </div>
+
+              <h3 className="font-semibold text-[#151515]">
+                Save and reuse meals
+              </h3>
+
+              <p className="mt-2 text-sm leading-6 text-[#5b665d]">
+                Keep track of reliable recipes so you can come back to meals
+                that work for your budget.
+              </p>
+            </motion.div>
+          </div>
+
+          <div className="relative z-10 mb-8 rounded-[1.5rem] border border-green-100 bg-white/75 p-5 shadow-sm">
+            <div className="mb-5 flex items-center justify-between gap-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#238247]">
+                  How it works
+                </p>
+
+                <h3 className="mt-2 text-xl font-semibold text-[#151515]">
+                  From pantry to plate
+                </h3>
+              </div>
+
+              <div className="hidden rounded-full bg-[#EAF5EC] px-4 py-2 text-xs font-semibold text-[#238247] sm:block">
+                Simple flow
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex gap-4 rounded-2xl bg-[#F8F4EC] p-4">
+                <div className="mt-1 h-3 w-3 shrink-0 rounded-full bg-[#FF7A1A]" />
+                <div>
+                  <h4 className="text-sm font-semibold text-[#151515]">
+                    Add pantry ingredients
+                  </h4>
+                  <p className="mt-1 text-sm leading-6 text-[#5b665d]">
+                    Users enter what they already have so the app can avoid
+                    suggesting meals that require too many extra groceries.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex gap-4 rounded-2xl bg-[#F8F4EC] p-4">
+                <div className="mt-1 h-3 w-3 shrink-0 rounded-full bg-[#238247]" />
+                <div>
+                  <h4 className="text-sm font-semibold text-[#151515]">
+                    Filter by preferences
+                  </h4>
+                  <p className="mt-1 text-sm leading-6 text-[#5b665d]">
+                    Meals can be narrowed down by ingredients, budget needs,
+                    saved favorites, and simple cooking preferences.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex gap-4 rounded-2xl bg-[#F8F4EC] p-4">
+                <div className="mt-1 h-3 w-3 shrink-0 rounded-full bg-[#FF7A1A]" />
+                <div>
+                  <h4 className="text-sm font-semibold text-[#151515]">
+                    Get affordable ideas
+                  </h4>
+                  <p className="mt-1 text-sm leading-6 text-[#5b665d]">
+                    BrokeBites turns simple ingredients into realistic meals
+                    designed for saving money and reducing food waste.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="relative z-10 rounded-[1.5rem] border border-green-100 bg-white p-5">
+            <div className="mb-5 flex items-center justify-between gap-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#238247]">
+                  Account access
+                </p>
+
+                <h3 className="mt-2 text-xl font-semibold text-[#151515]">
+                  Join BrokeBites
+                </h3>
+              </div>
+
+              <div className="hidden rounded-full bg-[#EAF5EC] px-4 py-2 text-xs font-semibold text-[#238247] sm:block">
+                Save meals
+              </div>
+            </div>
+
+            <motion.div
+              whileHover={{ y: -6 }}
+              transition={{ type: "spring", stiffness: 220, damping: 20 }}
+            >
+              <SignUpComponent />
+            </motion.div>
+          </div>
         </motion.div>
       </section>
     </main>
