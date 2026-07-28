@@ -943,6 +943,33 @@ export default function PantryPage() {
                             </span>
                           )}
                         </div>
+
+                        {recipe.missing.length > 0 ? (
+                          <div className="mt-4 rounded-2xl border border-emerald-100 bg-emerald-50 p-3">
+                            <div className="flex items-start justify-between gap-3">
+                              <div>
+                                <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
+                                  Store finder preview
+                                </p>
+                                <p className="mt-1 text-xs leading-5 text-emerald-800">
+                                  Map nearby stores for missing ingredients within {radiusMiles} miles.
+                                </p>
+                              </div>
+
+                              <MapPin className="h-4 w-4 shrink-0 text-emerald-600" />
+                            </div>
+
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => findNearbyStores(recipe.missing[0])}
+                              className="mt-3 h-8 w-full rounded-full border-emerald-200 bg-white px-3 text-xs font-semibold text-emerald-700 hover:bg-emerald-100"
+                            >
+                              <Store className="h-3 w-3" />
+                              Preview stores for {recipe.missing[0]}
+                            </Button>
+                          </div>
+                        ) : null}
                       </div>
 
                       <Button
