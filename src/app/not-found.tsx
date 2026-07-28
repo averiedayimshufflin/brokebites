@@ -21,7 +21,7 @@ export default function NotFound() {
   }, []);
 
   return (
-    <main className="min-h-screen overflow-hidden bg-[#F8F4EC] px-4 py-10 font-[family-name:var(--font-inter)] text-[#151515] sm:px-6 lg:px-10">
+    <main className="min-h-screen overflow-hidden bg-[#F8F4EC] px-4 py-10 font-[family-name:var(--font-raleway)] text-[#151515] sm:px-6 lg:px-10">
       <section className="mx-auto flex min-h-[calc(100vh-5rem)] w-full max-w-5xl items-center justify-center">
         <div className="relative w-full overflow-hidden rounded-[2rem] border border-black/5 bg-white p-8 shadow-[0_30px_90px_rgba(0,0,0,0.08)] sm:p-10 lg:p-14">
           <div className="absolute left-[-120px] top-[-120px] h-80 w-80 rounded-full bg-[#FF7A1A]/20 blur-3xl" />
@@ -33,7 +33,7 @@ export default function NotFound() {
                 404 - missing recipe
               </p>
 
-              <h1 className="font-[family-name:var(--font-playfair)] text-6xl font-semibold leading-[0.9] tracking-[-0.055em] text-[#151515] sm:text-7xl">
+              <h1 className="font-[family-name:var(--font-raleway)] text-6xl font-semibold leading-[0.9] tracking-[-0.055em] text-[#151515] sm:text-7xl">
                 This page is not in the pantry.
               </h1>
 

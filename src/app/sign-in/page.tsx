@@ -52,7 +52,7 @@ export default function SignInPage() {
   }
 
   return (
-    <main className="min-h-screen overflow-hidden bg-[#F8F4EC] font-[family-name:var(--font-inter)] text-[#151515]">
+    <main className="min-h-screen overflow-hidden bg-[#F8F4EC] font-[family-name:var(--font-raleway)] text-[#151515]">
       <section className="relative flex min-h-screen items-center justify-center px-4 py-10 sm:px-6 lg:px-10">
         <div className="absolute left-[-120px] top-[-120px] h-80 w-80 rounded-full bg-[#FF7A1A]/20 blur-3xl" />
         <div className="absolute bottom-[-140px] right-[-120px] h-96 w-96 rounded-full bg-[#238247]/20 blur-3xl" />
@@ -88,7 +88,7 @@ export default function SignInPage() {
                   initial={{ opacity: 0, y: 18 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.25, duration: 0.7, ease: "easeOut" }}
-                  className="font-[family-name:var(--font-playfair)] text-6xl font-semibold leading-[0.9] tracking-[-0.055em] text-white"
+                  className="font-[family-name:var(--font-raleway)] text-6xl font-semibold leading-[0.9] tracking-[-0.055em] text-white"
                 >
                   Sign in.
                   <br />
@@ -149,7 +149,7 @@ export default function SignInPage() {
                   </div>
 
                   <div>
-                    <CardTitle className="font-[family-name:var(--font-playfair)] text-5xl font-semibold leading-none tracking-[-0.045em] text-[#151515]">
+                    <CardTitle className="font-[family-name:var(--font-raleway)] text-5xl font-semibold leading-none tracking-[-0.045em] text-[#151515]">
                       Sign in
                     </CardTitle>
 

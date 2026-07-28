@@ -39,7 +39,7 @@ export default function Home() {
 
   if (checkingSession) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#F8F4EC] px-6 font-[family-name:var(--font-inter)] text-[#151515]">
+      <main className="flex min-h-screen items-center justify-center bg-[#F8F4EC] px-6 font-[family-name:var(--font-raleway)] text-[#151515]">
         <section className="rounded-[2rem] bg-white p-8 text-center shadow-[0_24px_70px_rgba(0,0,0,0.06)]">
           <p className="text-sm font-semibold text-[#FF7A1A]">BrokeBites</p>
           <h1 className="mt-2 text-2xl font-bold">Checking your session...</h1>
@@ -49,7 +49,7 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen overflow-hidden bg-[#F8F4EC] font-[family-name:var(--font-inter)] text-[#151515]">
+    <main className="min-h-screen overflow-hidden bg-[#F8F4EC] font-[family-name:var(--font-raleway)] text-[#151515]">
       <section className="mx-auto w-full max-w-[1440px] px-4 py-4 sm:px-6 lg:px-10">
         <motion.div
           initial={{ opacity: 0, y: -24 }}
@@ -94,7 +94,7 @@ export default function Home() {
                 initial={{ opacity: 0, y: 22 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.25, duration: 0.75, ease: "easeOut" }}
-                className="font-[family-name:var(--font-playfair)] text-6xl font-semibold leading-[0.88] tracking-[-0.06em] text-white sm:text-7xl md:text-8xl lg:text-[9rem]"
+                className="font-[family-name:var(--font-raleway)] text-6xl font-semibold leading-[0.88] tracking-[-0.06em] text-white sm:text-7xl md:text-8xl lg:text-[9rem]"
               >
                 Eat Smart.
                 <br />
@@ -140,7 +140,7 @@ export default function Home() {
                 Browse meals
               </p>
 
-              <h2 className="font-[family-name:var(--font-playfair)] text-4xl font-semibold leading-[0.95] tracking-[-0.045em] text-[#171717] sm:text-5xl">
+              <h2 className="font-[family-name:var(--font-raleway)] text-4xl font-semibold leading-[0.95] tracking-[-0.045em] text-[#171717] sm:text-5xl">
                 Pick the food that fits your pantry
               </h2>
             </div>
@@ -176,7 +176,7 @@ export default function Home() {
                 BrokeBites plan
               </p>
 
-              <h2 className="font-[family-name:var(--font-playfair)] text-4xl font-semibold leading-[0.95] tracking-[-0.045em] text-[#171717] sm:text-5xl">
+              <h2 className="font-[family-name:var(--font-raleway)] text-4xl font-semibold leading-[0.95] tracking-[-0.045em] text-[#171717] sm:text-5xl">
                 Plan smarter meals with what you already have
               </h2>
 
