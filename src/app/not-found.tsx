@@ -1,7 +1,25 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Home, Search, ShoppingBasket } from "lucide-react";
+import { Home, LayoutDashboard, Search, ShoppingBasket } from "lucide-react";
+import { getCurrentUser } from "@/lib/auth-state";
 
 export default function NotFound() {
+  const [isSignedIn, setIsSignedIn] = useState(false);
+  const [checkingSession, setCheckingSession] = useState(true);
+
+  useEffect(() => {
+    async function checkSession() {
+      const userCheck = await getCurrentUser();
+
+      setIsSignedIn(userCheck.ok);
+      setCheckingSession(false);
+    }
+
+    checkSession();
+  }, []);
+
   return (
     <main className="min-h-screen overflow-hidden bg-[#F8F4EC] px-4 py-10 font-[family-name:var(--font-inter)] text-[#151515] sm:px-6 lg:px-10">
       <section className="mx-auto flex min-h-[calc(100vh-5rem)] w-full max-w-5xl items-center justify-center">
@@ -20,26 +38,31 @@ export default function NotFound() {
               </h1>
 
               <p className="mt-7 max-w-lg text-sm font-medium leading-7 text-[#5b665d] sm:text-base">
-                The link may be old, mistyped, or moved. Head back home, check
-                your pantry, or sign in to get back to your saved BrokeBites
-                tools.
+                The link may be old, mistyped, or moved. Check your pantry or
+                jump back into your BrokeBites tools.
               </p>
 
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <Link
-                  href="/"
+                  href={isSignedIn ? "/dashboard" : "/"}
                   className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-[#151515] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[#238247]"
                 >
-                  <Home className="h-4 w-4" aria-hidden="true" />
-                  Back home
+                  {isSignedIn ? (
+                    <LayoutDashboard className="h-4 w-4" aria-hidden="true" />
+                  ) : (
+                    <Home className="h-4 w-4" aria-hidden="true" />
+                  )}
+                  {isSignedIn ? "Dashboard" : "Back home"}
                 </Link>
 
-                <Link
-                  href="/sign-in"
-                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-orange-100 bg-[#FFF8EF] px-5 py-2 text-sm font-semibold text-[#151515] transition hover:border-[#FF7A1A] hover:bg-[#FF7A1A] hover:text-white"
-                >
-                  Sign in
-                </Link>
+                {!checkingSession && !isSignedIn ? (
+                  <Link
+                    href="/sign-in"
+                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-orange-100 bg-[#FFF8EF] px-5 py-2 text-sm font-semibold text-[#151515] transition hover:border-[#FF7A1A] hover:bg-[#FF7A1A] hover:text-white"
+                  >
+                    Sign in
+                  </Link>
+                ) : null}
               </div>
             </div>
 
