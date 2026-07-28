@@ -85,7 +85,11 @@ type StoreLocation = {
   openingHours: string
   website: string
   phone: string
+  googleMapsUri: string
+  rating: number | null
+  userRatingCount: number | null
   availability: string
+  availabilitySource: string
 }
 
 const buttonMotion = {
@@ -515,6 +519,14 @@ export default function PantryPage() {
     )}`
   }
 
+  function openRecipe(recipe: Recipe) {
+    setSelectedRecipe(recipe)
+    setStoreFinderIngredient("")
+    setStoreFinderStatus("")
+    setNearbyStores([])
+    setSelectedStoreId(null)
+  }
+
   async function findNearbyStores(ingredient: string) {
     if (!navigator.geolocation) {
       setStoreFinderStatus("Location is not available in this browser.")
@@ -902,40 +914,16 @@ export default function PantryPage() {
                           Missing
                         </p>
 
-                        {recipe.missing.length > 0 ? (
-                          <div className="mb-3 flex items-center gap-2">
-                            <label className="text-xs font-medium text-zinc-500">
-                              Radius
-                            </label>
-                            <select
-                              value={radiusMiles}
-                              onChange={(event) =>
-                                setRadiusMiles(Number(event.target.value))
-                              }
-                              className="h-8 rounded-full border border-zinc-200 bg-white px-3 text-xs outline-none transition focus:border-orange-300 focus:ring-2 focus:ring-orange-100"
-                            >
-                              {[3, 5, 10, 15, 25].map((radius) => (
-                                <option key={radius} value={radius}>
-                                  {radius} mi
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                        ) : null}
-
                         <div className="flex flex-wrap gap-2">
                           {recipe.missing.length > 0 ? (
                             recipe.missing.map((ingredient) => (
-                              <Button
+                              <span
                                 key={ingredient}
-                                type="button"
-                                variant="outline"
-                                onClick={() => findNearbyStores(ingredient)}
-                                className="h-8 rounded-full border-orange-100 bg-orange-50 px-3 text-xs font-medium capitalize text-orange-700 transition hover:bg-orange-100"
+                                className="inline-flex items-center gap-1 rounded-full bg-orange-50 px-3 py-1 text-xs font-medium capitalize text-orange-700"
                               >
                                 <MapPin className="h-3 w-3" />
                                 {ingredient}
-                              </Button>
+                              </span>
                             ))
                           ) : (
                             <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
@@ -943,37 +931,10 @@ export default function PantryPage() {
                             </span>
                           )}
                         </div>
-
-                        {recipe.missing.length > 0 ? (
-                          <div className="mt-4 rounded-2xl border border-emerald-100 bg-emerald-50 p-3">
-                            <div className="flex items-start justify-between gap-3">
-                              <div>
-                                <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
-                                  Store finder preview
-                                </p>
-                                <p className="mt-1 text-xs leading-5 text-emerald-800">
-                                  Map nearby stores for missing ingredients within {radiusMiles} miles.
-                                </p>
-                              </div>
-
-                              <MapPin className="h-4 w-4 shrink-0 text-emerald-600" />
-                            </div>
-
-                            <Button
-                              type="button"
-                              variant="outline"
-                              onClick={() => findNearbyStores(recipe.missing[0])}
-                              className="mt-3 h-8 w-full rounded-full border-emerald-200 bg-white px-3 text-xs font-semibold text-emerald-700 hover:bg-emerald-100"
-                            >
-                              <Store className="h-3 w-3" />
-                              Preview stores for {recipe.missing[0]}
-                            </Button>
-                          </div>
-                        ) : null}
                       </div>
 
                       <Button
-                        onClick={() => setSelectedRecipe(recipe)}
+                        onClick={() => openRecipe(recipe)}
                         className="w-full rounded-2xl bg-zinc-900 transition duration-300 hover:bg-orange-500"
                       >
                         <Eye className="mr-2 h-4 w-4" />
@@ -984,59 +945,13 @@ export default function PantryPage() {
                 ))}
             </div>
 
-            {(storeFinderStatus || nearbyStores.length > 0) && (
-              <Card className="overflow-hidden rounded-3xl border-emerald-100 bg-white/85 shadow-sm backdrop-blur-md animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <CardHeader>
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                    <div>
-                      <CardTitle className="flex items-center gap-2">
-                        <MapPin className="h-5 w-5 text-emerald-600" />
-                        Ingredient map
-                      </CardTitle>
-                      <CardDescription>
-                        {storeFinderIngredient
-                          ? `Places that may carry ${storeFinderIngredient}.`
-                          : "Find nearby stores for missing ingredients."}
-                      </CardDescription>
-                    </div>
-
-                    <div className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
-                      {radiusMiles} mile radius
-                    </div>
-                  </div>
-                </CardHeader>
-
-                <CardContent className="space-y-4">
-                  <div className="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm leading-6 text-emerald-800">
-                    {storeFinderLoading ? (
-                      <span className="inline-flex items-center gap-2">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        {storeFinderStatus}
-                      </span>
-                    ) : (
-                      storeFinderStatus
-                    )}
-                  </div>
-
-                  {nearbyStores.length > 0 && (
-                    <IngredientStoreMap
-                      ingredient={storeFinderIngredient}
-                      stores={nearbyStores}
-                      selectedStoreId={selectedStoreId}
-                      onSelectStore={setSelectedStoreId}
-                      getStoreSearchUrl={getStoreSearchUrl}
-                    />
-                  )}
-                </CardContent>
-              </Card>
-            )}
           </div>
         </section>
       </div>
 
       {selectedRecipe && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className="relative max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-[2rem] bg-white p-6 shadow-2xl animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
+          <div className="relative max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-[2rem] bg-white p-6 shadow-2xl animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
             <Button
               variant="ghost"
               size="icon"
@@ -1096,6 +1011,84 @@ export default function PantryPage() {
                 })}
               </div>
             </div>
+
+            {selectedRecipe.ingredients.some(
+              (ingredient) => !normalizedPantry.includes(ingredient.toLowerCase())
+            ) && (
+              <div className="mt-6 rounded-[1.5rem] border border-emerald-100 bg-emerald-50/70 p-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <h4 className="flex items-center gap-2 font-semibold text-zinc-950">
+                      <MapPin className="h-4 w-4 text-emerald-600" />
+                      Find missing ingredients nearby
+                    </h4>
+                    <p className="mt-1 text-sm leading-6 text-zinc-600">
+                      Choose a radius, then map stores that may carry the ingredient.
+                    </p>
+                  </div>
+
+                  <label className="flex items-center gap-2 text-xs font-medium text-zinc-600">
+                    Radius
+                    <select
+                      value={radiusMiles}
+                      onChange={(event) => setRadiusMiles(Number(event.target.value))}
+                      className="h-9 rounded-full border border-emerald-200 bg-white px-3 text-xs outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                    >
+                      {[3, 5, 10, 15, 25].map((radius) => (
+                        <option key={radius} value={radius}>
+                          {radius} mi
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {selectedRecipe.ingredients
+                    .filter(
+                      (ingredient) =>
+                        !normalizedPantry.includes(ingredient.toLowerCase())
+                    )
+                    .map((ingredient) => (
+                      <Button
+                        key={ingredient}
+                        type="button"
+                        variant="outline"
+                        onClick={() => findNearbyStores(ingredient)}
+                        className="h-9 rounded-full border-emerald-200 bg-white px-3 text-xs font-semibold capitalize text-emerald-700 hover:bg-emerald-100"
+                      >
+                        <Store className="h-3 w-3" />
+                        Map {ingredient}
+                      </Button>
+                    ))}
+                </div>
+
+                {storeFinderStatus && (
+                  <div className="mt-4 rounded-2xl border border-emerald-100 bg-white px-4 py-3 text-sm leading-6 text-emerald-800">
+                    {storeFinderLoading ? (
+                      <span className="inline-flex items-center gap-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        {storeFinderStatus}
+                      </span>
+                    ) : (
+                      storeFinderStatus
+                    )}
+                  </div>
+                )}
+
+                {nearbyStores.length > 0 && (
+                  <div className="mt-4">
+                    <IngredientStoreMap
+                      ingredient={storeFinderIngredient}
+                      stores={nearbyStores}
+                      selectedStoreId={selectedStoreId}
+                      onSelectStore={setSelectedStoreId}
+                      getStoreSearchUrl={getStoreSearchUrl}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="mt-6">
               <h4 className="font-semibold">Steps</h4>
@@ -1198,8 +1191,14 @@ function IngredientStoreMap({
             <p className="mt-3 text-xs leading-5 text-zinc-600">
               {selectedStore.availability}
             </p>
+            <p className="mt-2 text-xs font-medium text-zinc-500">
+              Source: {selectedStore.availabilitySource}
+            </p>
             <a
-              href={getStoreSearchUrl(`${ingredient} ${selectedStore.name}`)}
+              href={
+                selectedStore.googleMapsUri ||
+                getStoreSearchUrl(`${ingredient} ${selectedStore.name}`)
+              }
               target="_blank"
               rel="noreferrer"
               className="mt-3 inline-flex rounded-full bg-zinc-950 px-3 py-2 text-xs font-semibold text-white transition hover:bg-orange-500"
@@ -1229,6 +1228,12 @@ function IngredientStoreMap({
                 <p className="mt-1 text-xs capitalize text-zinc-500">
                   {store.shopType} • {store.distanceMiles} mi
                 </p>
+                {store.rating ? (
+                  <p className="mt-1 text-xs text-amber-700">
+                    {store.rating} stars
+                    {store.userRatingCount ? ` • ${store.userRatingCount} reviews` : ""}
+                  </p>
+                ) : null}
               </div>
               <MapPin className="h-4 w-4 shrink-0 text-orange-500" />
             </div>
@@ -1240,6 +1245,9 @@ function IngredientStoreMap({
               <p className="mt-2 text-xs leading-5 text-emerald-700">
                 Hours: {store.openingHours}
               </p>
+            )}
+            {store.phone && (
+              <p className="mt-2 text-xs leading-5 text-zinc-500">Phone: {store.phone}</p>
             )}
           </motion.button>
         ))}

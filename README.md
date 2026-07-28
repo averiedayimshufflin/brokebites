@@ -8,6 +8,10 @@ BrokeBites is a pantry-first budget recipe app for keeping track of food at home
 
 - Receipt scanner: take or upload a grocery receipt photo, extract likely grocery items, review/edit the list, and bulk-add selected items to the pantry.
 
+## Optional Integrations
+
+- `GOOGLE_MAPS_API_KEY`: enables richer official Google Places details for nearby ingredient stores. Without it, BrokeBites falls back to OpenStreetMap store data. Live grocery inventory is not available unless a retailer inventory API is added.
+
 ## Getting Started
 
 First, run the development server:
