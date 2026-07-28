@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import {
   Plus,
   Trash2,
@@ -13,6 +13,8 @@ import {
   X,
   Eye,
   Sparkles,
+  Camera,
+  ScanLine,
 } from "lucide-react"
 
 import AuthStatusCard from "@/components/AuthStatusCard"
@@ -48,6 +50,31 @@ type Recipe = {
   difficulty: string
   ingredients: string[]
   steps: string[]
+}
+
+type BarcodeDetectorResult = {
+  rawValue: string
+}
+
+type BarcodeDetectorInstance = {
+  detect: (image: CanvasImageSource) => Promise<BarcodeDetectorResult[]>
+}
+
+type BarcodeDetectorConstructor = new (options?: {
+  formats?: string[]
+}) => BarcodeDetectorInstance
+
+type OpenFoodFactsLookup = {
+  name: string
+  brand: string
+  category: string
+  error?: string
+}
+
+declare global {
+  interface Window {
+    BarcodeDetector?: BarcodeDetectorConstructor
+  }
 }
 
 const recipes: Recipe[] = [
@@ -140,6 +167,13 @@ export default function PantryPage() {
   const [savingPantry, setSavingPantry] = useState(false)
   const [notice, setNotice] = useState("")
   const [authState, setAuthState] = useState<AuthCheck | null>(null)
+  const [scannerOpen, setScannerOpen] = useState(false)
+  const [scannerStatus, setScannerStatus] = useState("")
+  const [manualBarcode, setManualBarcode] = useState("")
+  const [scanningProduct, setScanningProduct] = useState(false)
+  const videoRef = useRef<HTMLVideoElement | null>(null)
+  const streamRef = useRef<MediaStream | null>(null)
+  const scanFrameRef = useRef<number | null>(null)
 
   useEffect(() => {
     async function loadUserPantry() {
@@ -164,6 +198,90 @@ export default function PantryPage() {
 
     loadUserPantry()
   }, [])
+
+  useEffect(() => {
+    if (!scannerOpen) {
+      stopBarcodeScanner()
+      return
+    }
+
+    startBarcodeScanner()
+
+    return () => stopBarcodeScanner()
+  }, [scannerOpen])
+
+  function stopBarcodeScanner() {
+    if (scanFrameRef.current) {
+      window.cancelAnimationFrame(scanFrameRef.current)
+      scanFrameRef.current = null
+    }
+
+    streamRef.current?.getTracks().forEach((track) => track.stop())
+    streamRef.current = null
+  }
+
+  async function startBarcodeScanner() {
+    setScannerStatus("")
+
+    if (!window.BarcodeDetector) {
+      setScannerStatus(
+        "Camera scanning is not supported in this browser. Enter the barcode below instead."
+      )
+      return
+    }
+
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setScannerStatus("Camera access is not available. Enter the barcode below instead.")
+      return
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "environment" },
+        audio: false,
+      })
+      const detector = new window.BarcodeDetector({
+        formats: ["ean_13", "ean_8", "upc_a", "upc_e"],
+      })
+
+      streamRef.current = stream
+
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream
+        await videoRef.current.play()
+      }
+
+      const scanFrame = async () => {
+        if (!videoRef.current || scanningProduct) {
+          scanFrameRef.current = window.requestAnimationFrame(scanFrame)
+          return
+        }
+
+        try {
+          const barcodes = await detector.detect(videoRef.current)
+          const barcode = barcodes[0]?.rawValue
+
+          if (barcode) {
+            const productWasAdded = await lookupAndAddBarcode(barcode)
+
+            if (!productWasAdded) {
+              scanFrameRef.current = window.requestAnimationFrame(scanFrame)
+            }
+
+            return
+          }
+        } catch {
+          setScannerStatus("Could not read the barcode. Try centering it in the frame.")
+        }
+
+        scanFrameRef.current = window.requestAnimationFrame(scanFrame)
+      }
+
+      scanFrameRef.current = window.requestAnimationFrame(scanFrame)
+    } catch {
+      setScannerStatus("Camera permission was blocked. Enter the barcode below instead.")
+    }
+  }
 
   async function loadPantryItems(nextUserId: string) {
     const { data, error } = await supabase
@@ -211,14 +329,14 @@ export default function PantryPage() {
     })
   }, [normalizedPantry])
 
-  async function addPantryItem() {
-    const trimmedItem = newItem.trim().toLowerCase()
+  async function savePantryItem(itemName: string, itemCategory = category) {
+    const trimmedItem = itemName.trim().toLowerCase()
 
-    if (!trimmedItem) return
+    if (!trimmedItem) return false
 
     if (!userId) {
       setNotice("Sign in with Google before saving pantry items.")
-      return
+      return false
     }
 
     const alreadyExists = pantryItems.some(
@@ -228,7 +346,7 @@ export default function PantryPage() {
     if (alreadyExists) {
       setNewItem("")
       setNotice("That ingredient is already in your pantry.")
-      return
+      return false
     }
 
     const rateLimit = checkClientRateLimit({
@@ -239,7 +357,7 @@ export default function PantryPage() {
 
     if (!rateLimit.allowed) {
       setNotice(getRateLimitMessage("adding pantry items", rateLimit.retryAfterSeconds))
-      return
+      return false
     }
 
     setSavingPantry(true)
@@ -251,7 +369,7 @@ export default function PantryPage() {
         user_id: userId,
         name: trimmedItem,
         item_key: trimmedItem,
-        category,
+        category: itemCategory,
       })
       .select("id, name, category")
       .single()
@@ -264,13 +382,70 @@ export default function PantryPage() {
           ? "That ingredient is already in your pantry."
           : getFriendlySupabaseError(error)
       )
-      return
+      return false
     }
 
     setPantryItems((prev) => [data, ...prev])
+    return true
+  }
+
+  async function addPantryItem() {
+    const saved = await savePantryItem(newItem, category)
+
+    if (!saved) return
 
     setNewItem("")
     setCategory("Other")
+  }
+
+  async function lookupAndAddBarcode(barcode: string) {
+    const cleanBarcode = barcode.trim()
+
+    if (!cleanBarcode || scanningProduct) return false
+
+    const lookupLimit = checkClientRateLimit({
+      key: `barcode-lookup:${userId ?? "guest"}`,
+      maxAttempts: 10,
+      windowMs: 60_000,
+    })
+
+    if (!lookupLimit.allowed) {
+      setScannerStatus(
+        getRateLimitMessage("scanning barcodes", lookupLimit.retryAfterSeconds)
+      )
+      return false
+    }
+
+    setScanningProduct(true)
+    setScannerStatus(`Looking up barcode ${cleanBarcode}...`)
+
+    try {
+      const response = await fetch(`/api/open-food-facts/${encodeURIComponent(cleanBarcode)}`)
+      const data = (await response.json()) as OpenFoodFactsLookup
+
+      if (!response.ok || data.error) {
+        setScannerStatus(data.error || "Could not find that product.")
+        setScanningProduct(false)
+        return false
+      }
+
+      const saved = await savePantryItem(data.name, data.category || "Other")
+
+      if (saved) {
+        setNotice(`${data.name} was added to your pantry from OpenFoodFacts.`)
+        setManualBarcode("")
+        setScannerOpen(false)
+        return true
+      } else {
+        setScannerStatus("That product was found, but it was not added.")
+        return false
+      }
+    } catch {
+      setScannerStatus("Could not look up that barcode. Try again in a moment.")
+      return false
+    } finally {
+      setScanningProduct(false)
+    }
   }
 
   async function removePantryItem(id: string) {
@@ -421,6 +596,17 @@ export default function PantryPage() {
                   {savingPantry ? "Saving..." : "Add item"}
                 </Button>
 
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setScannerOpen((open) => !open)}
+                  disabled={loadingPantry}
+                  className="w-full rounded-2xl border-emerald-100 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                >
+                  <ScanLine className="mr-2 h-4 w-4" />
+                  {scannerOpen ? "Close scanner" : "Scan barcode"}
+                </Button>
+
                 {notice && (
                   <p className="rounded-2xl border border-orange-100 bg-orange-50 px-4 py-3 text-sm leading-6 text-orange-800">
                     {notice}
@@ -428,6 +614,65 @@ export default function PantryPage() {
                 )}
               </CardContent>
             </Card>
+
+            {scannerOpen && (
+              <Card className="rounded-3xl border-emerald-100 bg-white/80 shadow-sm backdrop-blur-md animate-in fade-in slide-in-from-left-4 duration-500">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Camera className="h-5 w-5 text-emerald-600" />
+                    Barcode scanner
+                  </CardTitle>
+                  <CardDescription>
+                    Scan packaged food and BrokeBites will add it from OpenFoodFacts.
+                  </CardDescription>
+                </CardHeader>
+
+                <CardContent className="space-y-4">
+                  <div className="overflow-hidden rounded-3xl border border-zinc-100 bg-zinc-950">
+                    <video
+                      ref={videoRef}
+                      muted
+                      playsInline
+                      className="aspect-video w-full object-cover"
+                    />
+                  </div>
+
+                  <div className="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm leading-6 text-emerald-800">
+                    {scanningProduct
+                      ? "Reading product..."
+                      : scannerStatus ||
+                        "Point your camera at the barcode. Mac and cheese boxes work great here."}
+                  </div>
+
+                  <div className="space-y-3 rounded-2xl border border-zinc-100 bg-white p-4">
+                    <p className="text-sm font-medium text-zinc-700">
+                      Enter barcode manually
+                    </p>
+                    <div className="flex gap-2">
+                      <Input
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        value={manualBarcode}
+                        onChange={(event) => setManualBarcode(event.target.value)}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") lookupAndAddBarcode(manualBarcode)
+                        }}
+                        placeholder="Example: 021000658434"
+                        className="rounded-2xl"
+                      />
+                      <Button
+                        type="button"
+                        onClick={() => lookupAndAddBarcode(manualBarcode)}
+                        disabled={scanningProduct}
+                        className="rounded-2xl bg-emerald-600 px-4 hover:bg-emerald-700 disabled:opacity-60"
+                      >
+                        Scan
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             <Card className="rounded-3xl border-orange-100 bg-white/80 shadow-sm backdrop-blur-md animate-in fade-in slide-in-from-left-4 duration-700">
               <CardHeader>
