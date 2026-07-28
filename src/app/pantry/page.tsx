@@ -1,7 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
-import Link from "next/link"
+import { useEffect, useMemo, useState } from "react"
 import {
   Plus,
   Trash2,
@@ -16,6 +15,7 @@ import {
   Sparkles,
 } from "lucide-react"
 
+import AuthStatusCard from "@/components/AuthStatusCard"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -25,9 +25,15 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card"
+import {
+  getCurrentUser,
+  getFriendlySupabaseError,
+  type AuthCheck,
+} from "@/lib/auth-state"
+import { supabase } from "@/lib/supabase"
 
 type PantryItem = {
-  id: number
+  id: string
   name: string
   category: string
 }
@@ -42,14 +48,6 @@ type Recipe = {
   ingredients: string[]
   steps: string[]
 }
-
-const starterPantry: PantryItem[] = [
-  { id: 1, name: "rice", category: "Grain" },
-  { id: 2, name: "eggs", category: "Protein" },
-  { id: 3, name: "beans", category: "Protein" },
-  { id: 4, name: "pasta", category: "Grain" },
-  { id: 5, name: "butter", category: "Dairy" },
-]
 
 const recipes: Recipe[] = [
   {
@@ -131,13 +129,59 @@ const categories = [
 ]
 
 export default function PantryPage() {
-  const [pantryItems, setPantryItems] = useState<PantryItem[]>(starterPantry)
+  const [pantryItems, setPantryItems] = useState<PantryItem[]>([])
   const [newItem, setNewItem] = useState("")
   const [category, setCategory] = useState("Other")
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null)
+  const [userId, setUserId] = useState<string | null>(null)
+  const [loadingPantry, setLoadingPantry] = useState(true)
+  const [savingPantry, setSavingPantry] = useState(false)
+  const [notice, setNotice] = useState("")
+  const [authState, setAuthState] = useState<AuthCheck | null>(null)
 
-  const normalizedPantry = pantryItems.map((item) => item.name.toLowerCase())
+  useEffect(() => {
+    async function loadUserPantry() {
+      const userCheck = await getCurrentUser()
+
+      if (!userCheck.ok) {
+        setAuthState(userCheck)
+        setLoadingPantry(false)
+        return
+      }
+
+      setUserId(userCheck.user.id)
+
+      try {
+        await loadPantryItems(userCheck.user.id)
+      } catch (error) {
+        setNotice(getFriendlySupabaseError(error))
+      } finally {
+        setLoadingPantry(false)
+      }
+    }
+
+    loadUserPantry()
+  }, [])
+
+  async function loadPantryItems(nextUserId: string) {
+    const { data, error } = await supabase
+      .from("pantry_items")
+      .select("id, name, category")
+      .eq("user_id", nextUserId)
+      .order("created_at", { ascending: false })
+
+    if (error) {
+      throw error
+    }
+
+    setPantryItems(data ?? [])
+  }
+
+  const normalizedPantry = useMemo(
+    () => pantryItems.map((item) => item.name.toLowerCase()),
+    [pantryItems]
+  )
 
   const filteredPantry = pantryItems.filter((item) =>
     item.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -164,12 +208,17 @@ export default function PantryPage() {
         matchPercent,
       }
     })
-  }, [pantryItems])
+  }, [normalizedPantry])
 
-  function addPantryItem() {
+  async function addPantryItem() {
     const trimmedItem = newItem.trim().toLowerCase()
 
     if (!trimmedItem) return
+
+    if (!userId) {
+      setNotice("Sign in with Google before saving pantry items.")
+      return
+    }
 
     const alreadyExists = pantryItems.some(
       (item) => item.name.toLowerCase() === trimmedItem
@@ -177,30 +226,70 @@ export default function PantryPage() {
 
     if (alreadyExists) {
       setNewItem("")
+      setNotice("That ingredient is already in your pantry.")
       return
     }
 
-    setPantryItems((prev) => [
-      ...prev,
-      {
-        id: Date.now(),
+    setSavingPantry(true)
+    setNotice("")
+
+    const { data, error } = await supabase
+      .from("pantry_items")
+      .insert({
+        user_id: userId,
         name: trimmedItem,
+        item_key: trimmedItem,
         category,
-      },
-    ])
+      })
+      .select("id, name, category")
+      .single()
+
+    setSavingPantry(false)
+
+    if (error) {
+      setNotice(
+        error.code === "23505"
+          ? "That ingredient is already in your pantry."
+          : getFriendlySupabaseError(error)
+      )
+      return
+    }
+
+    setPantryItems((prev) => [data, ...prev])
 
     setNewItem("")
     setCategory("Other")
   }
 
-  function removePantryItem(id: number) {
+  async function removePantryItem(id: string) {
+    if (!userId) {
+      setNotice("Sign in with Google before changing pantry items.")
+      return
+    }
+
+    const previousItems = pantryItems
     setPantryItems((prev) => prev.filter((item) => item.id !== id))
+
+    const { error } = await supabase
+      .from("pantry_items")
+      .delete()
+      .eq("id", id)
+      .eq("user_id", userId)
+
+    if (error) {
+      setPantryItems(previousItems)
+      setNotice(getFriendlySupabaseError(error))
+    }
   }
 
   function getStoreSearchUrl(ingredient: string) {
     return `https://www.google.com/maps/search/${encodeURIComponent(
       ingredient + " near me"
     )}`
+  }
+
+  if (authState && !authState.ok) {
+    return <AuthStatusCard title={authState.title} message={authState.message} />
   }
 
   return (
@@ -232,14 +321,6 @@ export default function PantryPage() {
                   Find recipes
                 </Button>
 
-                <Link href="/">
-                  <Button
-                    variant="outline"
-                    className="rounded-full border-orange-200 bg-white/70 px-6"
-                  >
-                    Back home
-                  </Button>
-                </Link>
               </div>
             </div>
 
@@ -256,7 +337,7 @@ export default function PantryPage() {
 
               <CardContent>
                 <div className="text-5xl font-bold text-orange-500">
-                  {pantryItems.length}
+                  {loadingPantry ? "..." : pantryItems.length}
                 </div>
                 <p className="mt-2 text-sm text-zinc-500">
                   ingredients saved
@@ -310,11 +391,18 @@ export default function PantryPage() {
 
                 <Button
                   onClick={addPantryItem}
-                  className="w-full rounded-2xl bg-orange-500 hover:bg-orange-600"
+                  disabled={savingPantry || loadingPantry}
+                  className="w-full rounded-2xl bg-orange-500 hover:bg-orange-600 disabled:opacity-60"
                 >
                   <Plus className="mr-2 h-4 w-4" />
-                  Add item
+                  {savingPantry ? "Saving..." : "Add item"}
                 </Button>
+
+                {notice && (
+                  <p className="rounded-2xl border border-orange-100 bg-orange-50 px-4 py-3 text-sm leading-6 text-orange-800">
+                    {notice}
+                  </p>
+                )}
               </CardContent>
             </Card>
 
@@ -338,7 +426,11 @@ export default function PantryPage() {
                 </div>
 
                 <div className="flex max-h-[420px] flex-col gap-3 overflow-y-auto pr-1">
-                  {filteredPantry.length > 0 ? (
+                  {loadingPantry ? (
+                    <div className="rounded-2xl border border-dashed border-zinc-200 p-6 text-center text-sm text-zinc-500">
+                      Loading your saved pantry...
+                    </div>
+                  ) : filteredPantry.length > 0 ? (
                     filteredPantry.map((item) => (
                       <div
                         key={item.id}
