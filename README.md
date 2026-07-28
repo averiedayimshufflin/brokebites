@@ -1,5 +1,13 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## BrokeBites
+
+BrokeBites is a pantry-first budget recipe app for keeping track of food at home, saving favorite meals, and finding cheap recipes based on what is already available.
+
+## Future Features
+
+- Receipt scanner: take or upload a grocery receipt photo, extract likely grocery items, review/edit the list, and bulk-add selected items to the pantry.
+
 ## Getting Started
 
 First, run the development server:

@@ -15,7 +15,10 @@ import {
   Sparkles,
   Camera,
   ScanLine,
+  Loader2,
+  Store,
 } from "lucide-react"
+import { motion } from "framer-motion"
 
 import AuthStatusCard from "@/components/AuthStatusCard"
 import { Button } from "@/components/ui/button"
@@ -70,6 +73,26 @@ type OpenFoodFactsLookup = {
   category: string
   error?: string
 }
+
+type StoreLocation = {
+  id: string
+  name: string
+  lat: number
+  lon: number
+  shopType: string
+  distanceMiles: number
+  address: string
+  openingHours: string
+  website: string
+  phone: string
+  availability: string
+}
+
+const buttonMotion = {
+  whileHover: { scale: 1.03, y: -1 },
+  whileTap: { scale: 0.97, y: 0 },
+  transition: { type: "spring", stiffness: 420, damping: 28 },
+} as const
 
 declare global {
   interface Window {
@@ -171,6 +194,12 @@ export default function PantryPage() {
   const [scannerStatus, setScannerStatus] = useState("")
   const [manualBarcode, setManualBarcode] = useState("")
   const [scanningProduct, setScanningProduct] = useState(false)
+  const [radiusMiles, setRadiusMiles] = useState(5)
+  const [storeFinderIngredient, setStoreFinderIngredient] = useState("")
+  const [storeFinderStatus, setStoreFinderStatus] = useState("")
+  const [storeFinderLoading, setStoreFinderLoading] = useState(false)
+  const [nearbyStores, setNearbyStores] = useState<StoreLocation[]>([])
+  const [selectedStoreId, setSelectedStoreId] = useState<string | null>(null)
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const scanFrameRef = useRef<number | null>(null)
@@ -484,6 +513,76 @@ export default function PantryPage() {
     return `https://www.google.com/maps/search/${encodeURIComponent(
       ingredient + " near me"
     )}`
+  }
+
+  async function findNearbyStores(ingredient: string) {
+    if (!navigator.geolocation) {
+      setStoreFinderStatus("Location is not available in this browser.")
+      return
+    }
+
+    const lookupLimit = checkClientRateLimit({
+      key: `store-map:${userId ?? "guest"}`,
+      maxAttempts: 8,
+      windowMs: 60_000,
+    })
+
+    if (!lookupLimit.allowed) {
+      setStoreFinderStatus(
+        getRateLimitMessage("loading nearby stores", lookupLimit.retryAfterSeconds)
+      )
+      return
+    }
+
+    setStoreFinderIngredient(ingredient)
+    setStoreFinderLoading(true)
+    setStoreFinderStatus(`Finding stores near you for ${ingredient}...`)
+    setNearbyStores([])
+    setSelectedStoreId(null)
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const params = new URLSearchParams({
+            lat: String(position.coords.latitude),
+            lon: String(position.coords.longitude),
+            radiusMiles: String(radiusMiles),
+            ingredient,
+          })
+          const response = await fetch(`/api/ingredient-stores?${params.toString()}`)
+          const data = (await response.json()) as {
+            stores?: StoreLocation[]
+            error?: string
+          }
+
+          if (!response.ok || data.error) {
+            setStoreFinderStatus(data.error || "Could not load nearby stores.")
+            return
+          }
+
+          setNearbyStores(data.stores ?? [])
+          setSelectedStoreId(data.stores?.[0]?.id ?? null)
+          setStoreFinderStatus(
+            data.stores?.length
+              ? `Showing likely places to find ${ingredient}. Stock is not live.`
+              : `No food stores found within ${radiusMiles} miles. Try a wider radius.`
+          )
+        } catch {
+          setStoreFinderStatus("Could not load nearby stores. Try again in a moment.")
+        } finally {
+          setStoreFinderLoading(false)
+        }
+      },
+      () => {
+        setStoreFinderStatus("Allow location access to find nearby ingredients.")
+        setStoreFinderLoading(false)
+      },
+      {
+        enableHighAccuracy: false,
+        maximumAge: 300_000,
+        timeout: 8_000,
+      }
+    )
   }
 
   if (authState && !authState.ok) {
@@ -803,19 +902,40 @@ export default function PantryPage() {
                           Missing
                         </p>
 
+                        {recipe.missing.length > 0 ? (
+                          <div className="mb-3 flex items-center gap-2">
+                            <label className="text-xs font-medium text-zinc-500">
+                              Radius
+                            </label>
+                            <select
+                              value={radiusMiles}
+                              onChange={(event) =>
+                                setRadiusMiles(Number(event.target.value))
+                              }
+                              className="h-8 rounded-full border border-zinc-200 bg-white px-3 text-xs outline-none transition focus:border-orange-300 focus:ring-2 focus:ring-orange-100"
+                            >
+                              {[3, 5, 10, 15, 25].map((radius) => (
+                                <option key={radius} value={radius}>
+                                  {radius} mi
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        ) : null}
+
                         <div className="flex flex-wrap gap-2">
                           {recipe.missing.length > 0 ? (
                             recipe.missing.map((ingredient) => (
-                              <a
+                              <Button
                                 key={ingredient}
-                                href={getStoreSearchUrl(ingredient)}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="inline-flex items-center gap-1 rounded-full bg-orange-50 px-3 py-1 text-xs font-medium capitalize text-orange-700 transition hover:bg-orange-100"
+                                type="button"
+                                variant="outline"
+                                onClick={() => findNearbyStores(ingredient)}
+                                className="h-8 rounded-full border-orange-100 bg-orange-50 px-3 text-xs font-medium capitalize text-orange-700 transition hover:bg-orange-100"
                               >
                                 <MapPin className="h-3 w-3" />
                                 {ingredient}
-                              </a>
+                              </Button>
                             ))
                           ) : (
                             <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
@@ -836,6 +956,53 @@ export default function PantryPage() {
                   </Card>
                 ))}
             </div>
+
+            {(storeFinderStatus || nearbyStores.length > 0) && (
+              <Card className="overflow-hidden rounded-3xl border-emerald-100 bg-white/85 shadow-sm backdrop-blur-md animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <CardHeader>
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <CardTitle className="flex items-center gap-2">
+                        <MapPin className="h-5 w-5 text-emerald-600" />
+                        Ingredient map
+                      </CardTitle>
+                      <CardDescription>
+                        {storeFinderIngredient
+                          ? `Places that may carry ${storeFinderIngredient}.`
+                          : "Find nearby stores for missing ingredients."}
+                      </CardDescription>
+                    </div>
+
+                    <div className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
+                      {radiusMiles} mile radius
+                    </div>
+                  </div>
+                </CardHeader>
+
+                <CardContent className="space-y-4">
+                  <div className="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm leading-6 text-emerald-800">
+                    {storeFinderLoading ? (
+                      <span className="inline-flex items-center gap-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        {storeFinderStatus}
+                      </span>
+                    ) : (
+                      storeFinderStatus
+                    )}
+                  </div>
+
+                  {nearbyStores.length > 0 && (
+                    <IngredientStoreMap
+                      ingredient={storeFinderIngredient}
+                      stores={nearbyStores}
+                      selectedStoreId={selectedStoreId}
+                      onSelectStore={setSelectedStoreId}
+                      getStoreSearchUrl={getStoreSearchUrl}
+                    />
+                  )}
+                </CardContent>
+              </Card>
+            )}
           </div>
         </section>
       </div>
@@ -924,5 +1091,132 @@ export default function PantryPage() {
         </div>
       )}
     </main>
+  )
+}
+
+function IngredientStoreMap({
+  ingredient,
+  stores,
+  selectedStoreId,
+  onSelectStore,
+  getStoreSearchUrl,
+}: {
+  ingredient: string
+  stores: StoreLocation[]
+  selectedStoreId: string | null
+  onSelectStore: (storeId: string) => void
+  getStoreSearchUrl: (ingredient: string) => string
+}) {
+  const selectedStore =
+    stores.find((store) => store.id === selectedStoreId) ?? stores[0]
+  const latitudes = stores.map((store) => store.lat)
+  const longitudes = stores.map((store) => store.lon)
+  const minLat = Math.min(...latitudes)
+  const maxLat = Math.max(...latitudes)
+  const minLon = Math.min(...longitudes)
+  const maxLon = Math.max(...longitudes)
+  const latRange = maxLat - minLat || 0.01
+  const lonRange = maxLon - minLon || 0.01
+
+  function getMarkerPosition(store: StoreLocation) {
+    return {
+      left: `${8 + ((store.lon - minLon) / lonRange) * 84}%`,
+      top: `${92 - ((store.lat - minLat) / latRange) * 84}%`,
+    }
+  }
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-[1.25fr_0.75fr]">
+      <div className="relative min-h-[320px] overflow-hidden rounded-[2rem] border border-emerald-100 bg-[linear-gradient(135deg,#ecfdf5_0%,#f8fafc_52%,#fff7ed_100%)]">
+        <div className="absolute inset-0 opacity-45 [background-image:linear-gradient(rgba(16,185,129,0.14)_1px,transparent_1px),linear-gradient(90deg,rgba(16,185,129,0.14)_1px,transparent_1px)] [background-size:42px_42px]" />
+        <div className="absolute left-5 top-5 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-emerald-700 shadow-sm">
+          Fast store map
+        </div>
+
+        {stores.map((store) => {
+          const isSelected = store.id === selectedStore.id
+
+          return (
+            <motion.button
+              {...buttonMotion}
+              key={store.id}
+              type="button"
+              onClick={() => onSelectStore(store.id)}
+              className={`absolute z-10 flex h-10 w-10 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 shadow-lg transition hover:scale-110 ${
+                isSelected
+                  ? "border-emerald-700 bg-emerald-600 text-white"
+                  : "border-white bg-orange-500 text-white"
+              }`}
+              style={getMarkerPosition(store)}
+              aria-label={`Show ${store.name}`}
+            >
+              <Store className="h-5 w-5" />
+            </motion.button>
+          )
+        })}
+
+        {selectedStore && (
+          <div className="absolute bottom-4 left-4 right-4 z-20 rounded-3xl border border-white/70 bg-white/95 p-4 shadow-xl backdrop-blur">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-bold text-zinc-950">{selectedStore.name}</p>
+                <p className="mt-1 text-xs capitalize text-zinc-500">
+                  {selectedStore.shopType} • {selectedStore.distanceMiles} mi away
+                </p>
+              </div>
+              <span className="rounded-full bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700">
+                likely
+              </span>
+            </div>
+            <p className="mt-3 text-xs leading-5 text-zinc-600">
+              {selectedStore.availability}
+            </p>
+            <a
+              href={getStoreSearchUrl(`${ingredient} ${selectedStore.name}`)}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-3 inline-flex rounded-full bg-zinc-950 px-3 py-2 text-xs font-semibold text-white transition hover:bg-orange-500"
+            >
+              Open directions
+            </a>
+          </div>
+        )}
+      </div>
+
+      <div className="flex max-h-[320px] flex-col gap-3 overflow-y-auto pr-1">
+        {stores.map((store) => (
+          <motion.button
+            {...buttonMotion}
+            key={store.id}
+            type="button"
+            onClick={() => onSelectStore(store.id)}
+            className={`rounded-2xl border p-4 text-left transition hover:-translate-y-0.5 ${
+              store.id === selectedStore.id
+                ? "border-emerald-200 bg-emerald-50"
+                : "border-zinc-100 bg-white hover:border-orange-100 hover:bg-orange-50"
+            }`}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-zinc-950">{store.name}</p>
+                <p className="mt-1 text-xs capitalize text-zinc-500">
+                  {store.shopType} • {store.distanceMiles} mi
+                </p>
+              </div>
+              <MapPin className="h-4 w-4 shrink-0 text-orange-500" />
+            </div>
+
+            {store.address && (
+              <p className="mt-2 text-xs leading-5 text-zinc-500">{store.address}</p>
+            )}
+            {store.openingHours && (
+              <p className="mt-2 text-xs leading-5 text-emerald-700">
+                Hours: {store.openingHours}
+              </p>
+            )}
+          </motion.button>
+        ))}
+      </div>
+    </div>
   )
 }
