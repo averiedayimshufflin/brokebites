@@ -39,6 +39,58 @@ const storeOptions = [
   "Costco",
   "Lidls",
 ];
+
+type FoodProfile = {
+  equipment: string[];
+  goals: string[];
+  dietary_needs: string[];
+  stores: string[];
+};
+
+function getProfileCacheKey(userId: string) {
+  return `brokebites-food-profile:${userId}`;
+}
+
+function isFoodProfileEmpty(profile: FoodProfile) {
+  return (
+    profile.equipment.length === 0 &&
+    profile.goals.length === 0 &&
+    profile.dietary_needs.length === 0 &&
+    profile.stores.length === 0
+  );
+}
+
+function readCachedFoodProfile(userId: string): FoodProfile | null {
+  try {
+    const cachedProfile = window.localStorage.getItem(getProfileCacheKey(userId));
+
+    if (!cachedProfile) {
+      return null;
+    }
+
+    const parsedProfile = JSON.parse(cachedProfile) as FoodProfile;
+
+    if (isFoodProfileEmpty(parsedProfile)) {
+      return null;
+    }
+
+    return parsedProfile;
+  } catch {
+    return null;
+  }
+}
+
+function cacheFoodProfile(userId: string, profile: FoodProfile) {
+  if (isFoodProfileEmpty(profile)) {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(getProfileCacheKey(userId), JSON.stringify(profile));
+  } catch {
+    // A local backup helps recovery, but Supabase remains the source of truth.
+  }
+}
 export default function OnboardingPage(){
     const [equipment, setEquipment] = useState<string[]>([]);
   const [goals, setGoals] = useState<string[]>([]);
@@ -75,10 +127,29 @@ export default function OnboardingPage(){
             }
 
             if (profileData) {
-                setEquipment(profileData.equipment ?? []);
-                setGoals(profileData.goals ?? []);
-                setDietaryNeeds(profileData.dietary_needs ?? []);
-                setStores(profileData.stores ?? []);
+                const savedProfile = {
+                    equipment: profileData.equipment ?? [],
+                    goals: profileData.goals ?? [],
+                    dietary_needs: profileData.dietary_needs ?? [],
+                    stores: profileData.stores ?? [],
+                };
+                const cachedProfile = readCachedFoodProfile(userCheck.user.id);
+                const profileToUse =
+                    isFoodProfileEmpty(savedProfile) && cachedProfile
+                        ? cachedProfile
+                        : savedProfile;
+
+                setEquipment(profileToUse.equipment);
+                setGoals(profileToUse.goals);
+                setDietaryNeeds(profileToUse.dietary_needs);
+                setStores(profileToUse.stores);
+                cacheFoodProfile(userCheck.user.id, profileToUse);
+
+                if (isFoodProfileEmpty(savedProfile) && cachedProfile) {
+                    setNotice(
+                        "Your saved profile looked empty, so BrokeBites restored the last profile saved in this browser."
+                    );
+                }
             }
 
             setCheckingUser(false);
@@ -124,13 +195,23 @@ export default function OnboardingPage(){
   }
 
   try {
-    const { error } = await supabase.from("profiles").upsert({
-      id: userCheck.user.id,
-      email: userCheck.user.email,
+    const nextProfile = {
       equipment,
       goals,
       dietary_needs: dietaryNeeds,
       stores,
+    };
+
+    if (isFoodProfileEmpty(nextProfile)) {
+      setSaving(false);
+      setNotice("Pick at least one food profile option before saving.");
+      return;
+    }
+
+    const { error } = await supabase.from("profiles").upsert({
+      id: userCheck.user.id,
+      email: userCheck.user.email,
+      ...nextProfile,
       onboarding_completed: true,
       updated_at: new Date().toISOString(),
     });
@@ -141,6 +222,8 @@ export default function OnboardingPage(){
       setNotice(getFriendlySupabaseError(error));
       return;
     }
+
+    cacheFoodProfile(userCheck.user.id, nextProfile);
   } catch {
     setSaving(false);
     setNotice("Supabase did not respond. Please try saving again in a moment.");

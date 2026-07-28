@@ -22,7 +22,7 @@ export default function AuthCallbackPage() {
           .from("profiles")
           .select("onboarding_completed")
           .eq("id", userCheck.user.id)
-          .single();
+          .maybeSingle();
 
         if (error) {
           setAuthState({

@@ -23,6 +23,13 @@ type Recipe = {
   steps?: string[];
 };
 
+type FoodProfile = {
+  equipment: string[];
+  goals: string[];
+  dietary_needs: string[];
+  stores: string[];
+};
+
 const recipeDetails: Record<string, Pick<Recipe, "ingredients" | "steps">> = {
   "Egg Fried Rice": {
     ingredients: ["1 cup cooked rice", "1 egg", "Frozen vegetables", "Soy sauce", "Oil or butter"],
@@ -139,6 +146,51 @@ const savedMeals: Recipe[] = [
   },
 ].map((recipe) => ({ ...recipe, ...recipeDetails[recipe.name] }));
 
+function getProfileCacheKey(userId: string) {
+  return `brokebites-food-profile:${userId}`;
+}
+
+function isFoodProfileEmpty(profile: FoodProfile) {
+  return (
+    profile.equipment.length === 0 &&
+    profile.goals.length === 0 &&
+    profile.dietary_needs.length === 0 &&
+    profile.stores.length === 0
+  );
+}
+
+function readCachedFoodProfile(userId: string): FoodProfile | null {
+  try {
+    const cachedProfile = window.localStorage.getItem(getProfileCacheKey(userId));
+
+    if (!cachedProfile) {
+      return null;
+    }
+
+    const parsedProfile = JSON.parse(cachedProfile) as FoodProfile;
+
+    if (isFoodProfileEmpty(parsedProfile)) {
+      return null;
+    }
+
+    return parsedProfile;
+  } catch {
+    return null;
+  }
+}
+
+function cacheFoodProfile(userId: string, profile: FoodProfile) {
+  if (isFoodProfileEmpty(profile)) {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(getProfileCacheKey(userId), JSON.stringify(profile));
+  } catch {
+    // Local backup failure should not block dashboard loading.
+  }
+}
+
 export default function DashboardPage() {
   const [email, setEmail] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -148,13 +200,9 @@ export default function DashboardPage() {
   const [hasSearched, setHasSearched] = useState(false);
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [authState, setAuthState] = useState<AuthCheck | null>(null);
+  const [profileIsEmpty, setProfileIsEmpty] = useState(false);
 
-  const [profile, setProfile] = useState<{
-    equipment: string[];
-    goals: string[];
-    dietary_needs: string[];
-    stores: string[];
-  } | null>(null);
+  const [profile, setProfile] = useState<FoodProfile | null>(null);
 
   useEffect(() => {
     async function checkUser() {
@@ -173,7 +221,7 @@ export default function DashboardPage() {
           .from("profiles")
           .select("equipment, goals, dietary_needs, stores, onboarding_completed")
           .eq("id", userCheck.user.id)
-          .single();
+          .maybeSingle();
 
         if (error) {
           setAuthState({
@@ -191,12 +239,21 @@ export default function DashboardPage() {
           return;
         }
 
-        setProfile({
+        const savedProfile = {
           equipment: profileData.equipment ?? [],
           goals: profileData.goals ?? [],
           dietary_needs: profileData.dietary_needs ?? [],
           stores: profileData.stores ?? [],
-        });
+        };
+        const cachedProfile = readCachedFoodProfile(userCheck.user.id);
+        const nextProfile =
+          isFoodProfileEmpty(savedProfile) && cachedProfile
+            ? cachedProfile
+            : savedProfile;
+
+        setProfile(nextProfile);
+        setProfileIsEmpty(isFoodProfileEmpty(nextProfile));
+        cacheFoodProfile(userCheck.user.id, nextProfile);
 
         setLoading(false);
       } catch {
@@ -487,12 +544,32 @@ export default function DashboardPage() {
                   </button>
                 </div>
 
-                <div className="mt-5 space-y-4">
-                  <MiniPreference title="Equipment" items={profile.equipment} />
-                  <MiniPreference title="Goals" items={profile.goals} />
-                  <MiniPreference title="Dietary needs" items={profile.dietary_needs} />
-                  <MiniPreference title="Stores" items={profile.stores} />
-                </div>
+                {profileIsEmpty ? (
+                  <div className="mt-5 rounded-2xl border border-orange-100 bg-orange-50 p-4">
+                    <p className="text-sm font-semibold text-gray-950">
+                      Your saved food profile is empty.
+                    </p>
+                    <p className="mt-2 text-sm leading-6 text-gray-600">
+                      Rebuild it once and BrokeBites will protect it from blank saves.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        window.location.href = "/onboarding";
+                      }}
+                      className="mt-4 rounded-xl bg-orange-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-orange-600"
+                    >
+                      Rebuild profile
+                    </button>
+                  </div>
+                ) : (
+                  <div className="mt-5 space-y-4">
+                    <MiniPreference title="Equipment" items={profile.equipment} />
+                    <MiniPreference title="Goals" items={profile.goals} />
+                    <MiniPreference title="Dietary needs" items={profile.dietary_needs} />
+                    <MiniPreference title="Stores" items={profile.stores} />
+                  </div>
+                )}
               </section>
             )}
           </aside>
