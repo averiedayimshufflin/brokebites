@@ -3,7 +3,14 @@ import AuthStatusCard from "@/components/AuthStatusCard";
 import { getCurrentUser, getFriendlySupabaseError, type AuthCheck } from "@/lib/auth-state";
 import { checkClientRateLimit, getRateLimitMessage } from "@/lib/rate-limit";
 import { supabase } from "@/lib/supabase";
+import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
+
+const buttonMotion = {
+  whileHover: { scale: 1.03, y: -1 },
+  whileTap: { scale: 0.97, y: 0 },
+  transition: { type: "spring", stiffness: 420, damping: 28 },
+} as const;
 
 const equipmentOptions = [
   "Microwave",
@@ -321,13 +328,14 @@ return (
               {notice || "You can change these later in settings."}
             </p>
 
-           <button
+           <motion.button
+  {...buttonMotion}
   onClick={handleFinishSetup}
   disabled={saving || profileLoadFailed}
   className="rounded-xl bg-orange-500 px-6 py-3 font-semibold text-white transition hover:bg-orange-600 disabled:opacity-60"
 >
   {saving ? "Saving..." : "Finish setup"}
-</button>
+</motion.button>
           </div>
         </div>
       </section>
@@ -360,7 +368,8 @@ function QuestionSection({
           const isSelected = selectedOptions.includes(option);
 
           return (
-            <button
+            <motion.button
+              {...buttonMotion}
               key={option}
               type="button"
               onClick={() => onToggle(option)}
@@ -371,7 +380,7 @@ function QuestionSection({
               }`}
             >
               {option}
-            </button>
+            </motion.button>
           );
         })}
       </div>

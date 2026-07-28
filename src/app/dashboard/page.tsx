@@ -1,9 +1,16 @@
 "use client";
 
+import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import AuthStatusCard from "@/components/AuthStatusCard";
 import { getCurrentUser, getFriendlySupabaseError, type AuthCheck } from "@/lib/auth-state";
 import { supabase } from "@/lib/supabase";
+
+const buttonMotion = {
+  whileHover: { scale: 1.03, y: -1 },
+  whileTap: { scale: 0.97, y: 0 },
+  transition: { type: "spring", stiffness: 420, damping: 28 },
+} as const;
 
 const quickFilters = [
   "Under 10 min",
@@ -378,12 +385,13 @@ export default function DashboardPage() {
             )}
           </div>
 
-          <button
+          <motion.button
+            {...buttonMotion}
             onClick={handleLogout}
             className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
           >
             Log out
-          </button>
+          </motion.button>
         </header>
 
         <section className="rounded-3xl bg-white p-6 shadow-sm">
@@ -400,12 +408,13 @@ export default function DashboardPage() {
               onChange={(event) => setIngredients(event.target.value)}
             />
 
-            <button
+            <motion.button
+              {...buttonMotion}
               onClick={handleFindMeals}
               className="rounded-xl bg-orange-500 px-6 py-3 font-semibold text-white transition hover:bg-orange-600"
             >
               Find meals
-            </button>
+            </motion.button>
           </div>
 
           <div className="mt-5 flex flex-wrap gap-3">
@@ -413,7 +422,8 @@ export default function DashboardPage() {
               const isActive = activeFilter === filter;
 
               return (
-                <button
+                <motion.button
+                  {...buttonMotion}
                   key={filter}
                   type="button"
                   onClick={() => {
@@ -426,7 +436,7 @@ export default function DashboardPage() {
                   }`}
                 >
                   {filter}
-                </button>
+                </motion.button>
               );
             })}
           </div>
@@ -501,13 +511,14 @@ export default function DashboardPage() {
 
                     <p className="mt-2 text-sm text-gray-600">{meal.description}</p>
 
-                    <button
+                    <motion.button
+                      {...buttonMotion}
                       type="button"
                       onClick={() => setSelectedRecipe(meal)}
                       className="mt-4 text-sm font-semibold text-orange-600 hover:text-orange-700"
                     >
                       View recipe
-                    </button>
+                    </motion.button>
                   </div>
                 ))}
               </div>
@@ -524,9 +535,12 @@ export default function DashboardPage() {
                 Get the cheapest and easiest meal possible using whatever you already have.
               </p>
 
-              <button className="mt-5 w-full rounded-xl bg-white px-4 py-3 font-semibold text-orange-600 transition hover:bg-orange-50">
+              <motion.button
+                {...buttonMotion}
+                className="mt-5 w-full rounded-xl bg-white px-4 py-3 font-semibold text-orange-600 transition hover:bg-orange-50"
+              >
                 Start Survival Mode
-              </button>
+              </motion.button>
             </section>
 
             {profile && (
@@ -534,14 +548,15 @@ export default function DashboardPage() {
                 <div className="flex items-center justify-between gap-4">
                   <h2 className="text-xl font-bold text-gray-950">Your food profile</h2>
 
-                  <button
+                  <motion.button
+                    {...buttonMotion}
                     onClick={() => {
                       window.location.href = "/onboarding";
                     }}
                     className="text-sm font-semibold text-orange-600 hover:text-orange-700"
                   >
                     Edit
-                  </button>
+                  </motion.button>
                 </div>
 
                 {profileIsEmpty ? (
@@ -552,7 +567,8 @@ export default function DashboardPage() {
                     <p className="mt-2 text-sm leading-6 text-gray-600">
                       Rebuild it once and BrokeBites will protect it from blank saves.
                     </p>
-                    <button
+                    <motion.button
+                      {...buttonMotion}
                       type="button"
                       onClick={() => {
                         window.location.href = "/onboarding";
@@ -560,7 +576,7 @@ export default function DashboardPage() {
                       className="mt-4 rounded-xl bg-orange-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-orange-600"
                     >
                       Rebuild profile
-                    </button>
+                    </motion.button>
                   </div>
                 ) : (
                   <div className="mt-5 space-y-4">
@@ -617,13 +633,14 @@ function RecipeCard({
         ))}
       </div>
 
-      <button
+      <motion.button
+        {...buttonMotion}
         type="button"
         onClick={onView}
         className="mt-5 w-full rounded-xl bg-gray-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-gray-800"
       >
         View recipe
-      </button>
+      </motion.button>
     </article>
   );
 }
@@ -639,14 +656,15 @@ function RecipeModal({ recipe, onClose }: { recipe: Recipe; onClose: () => void 
             <p className="mt-2 text-gray-600">{recipe.description}</p>
           </div>
 
-          <button
+          <motion.button
+            {...buttonMotion}
             type="button"
             onClick={onClose}
             className="rounded-full bg-gray-100 px-3 py-1 text-sm font-bold text-gray-600 transition hover:bg-gray-200"
             aria-label="Close recipe details"
           >
             X
-          </button>
+          </motion.button>
         </div>
 
         <div className="mt-5 flex flex-wrap gap-2">
@@ -693,13 +711,14 @@ function RecipeModal({ recipe, onClose }: { recipe: Recipe; onClose: () => void 
           </div>
         </div>
 
-        <button
+        <motion.button
+          {...buttonMotion}
           type="button"
           onClick={onClose}
           className="mt-6 w-full rounded-xl bg-orange-500 px-4 py-3 font-semibold text-white transition hover:bg-orange-600"
         >
           Done
-        </button>
+        </motion.button>
       </section>
     </div>
   );

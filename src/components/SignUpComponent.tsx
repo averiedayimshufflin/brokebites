@@ -8,6 +8,8 @@ return(
     key = "sign-up-button"
     initial={{ opacity: 0, y: 8 }}
     animate={{ opacity: 1, y: 0 }}
+    whileHover={{ scale: 1.03, y: -1 }}
+    whileTap={{ scale: 0.97, y: 0 }}
   transition={{ duration: 0.50, ease: "easeOut" }}
     >
 
