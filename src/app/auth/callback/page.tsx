@@ -2,52 +2,22 @@
 
 import { useEffect, useState } from "react";
 import AuthStatusCard from "@/components/AuthStatusCard";
-import { getCurrentUser, getFriendlySupabaseError, type AuthCheck } from "@/lib/auth-state";
-import { supabase } from "@/lib/supabase";
+import { type AuthCheck } from "@/lib/auth-state";
+import { chooseAutomaticRoute } from "@/lib/route-choice";
 
 export default function AuthCallbackPage() {
   const [authState, setAuthState] = useState<AuthCheck | null>(null);
 
   useEffect(() => {
     async function sendUserToCorrectPage() {
-      const userCheck = await getCurrentUser();
+      const routeChoice = await chooseAutomaticRoute();
 
-      if (!userCheck.ok) {
-        setAuthState(userCheck);
+      if (!routeChoice.ok) {
+        setAuthState(routeChoice.authState);
         return;
       }
 
-      try {
-        const { data: profile, error } = await supabase
-          .from("profiles")
-          .select("onboarding_completed")
-          .eq("id", userCheck.user.id)
-          .maybeSingle();
-
-        if (error) {
-          setAuthState({
-            ok: false,
-            reason: "unavailable",
-            title: "Could not finish sign in",
-            message: getFriendlySupabaseError(error),
-          });
-          return;
-        }
-
-        if (profile?.onboarding_completed) {
-          window.location.href = "/dashboard";
-        } else {
-          window.location.href = "/onboarding";
-        }
-      } catch {
-        setAuthState({
-          ok: false,
-          reason: "unavailable",
-          title: "Could not finish sign in",
-          message:
-            "Supabase did not respond after Google sign-in. Please try again in a moment.",
-        });
-      }
+      window.location.href = routeChoice.route;
     }
 
     sendUserToCorrectPage();

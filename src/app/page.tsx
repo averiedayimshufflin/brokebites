@@ -6,17 +6,17 @@ import Link from "next/link";
 import DemoFilterTags from "@/components/DemoFilterTags";
 import SignUpComponent from "@/components/SignUpComponent";
 import SpinningCard from "@/components/SpinningCard";
-import { getCurrentUser } from "@/lib/auth-state";
+import { chooseAutomaticRoute } from "@/lib/route-choice";
 
 export default function Home() {
   const [checkingSession, setCheckingSession] = useState(true);
 
   useEffect(() => {
     async function redirectSignedInUser() {
-      const userCheck = await getCurrentUser();
+      const routeChoice = await chooseAutomaticRoute();
 
-      if (userCheck.ok) {
-        window.location.href = "/dashboard";
+      if (routeChoice.ok && routeChoice.route !== "/sign-in") {
+        window.location.href = routeChoice.route;
         return;
       }
 
