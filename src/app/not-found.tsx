@@ -43,26 +43,32 @@ export default function NotFound() {
               </p>
 
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                <Link
-                  href={isSignedIn ? "/dashboard" : "/"}
-                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-[#151515] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[#238247]"
-                >
-                  {isSignedIn ? (
-                    <LayoutDashboard className="h-4 w-4" aria-hidden="true" />
-                  ) : (
-                    <Home className="h-4 w-4" aria-hidden="true" />
-                  )}
-                  {isSignedIn ? "Dashboard" : "Back home"}
-                </Link>
+                {checkingSession ? (
+                  <span className="inline-flex min-h-11 w-36 animate-pulse rounded-full bg-[#151515]/15" />
+                ) : (
+                  <>
+                    <Link
+                      href={isSignedIn ? "/dashboard" : "/"}
+                      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-[#151515] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[#238247]"
+                    >
+                      {isSignedIn ? (
+                        <LayoutDashboard className="h-4 w-4" aria-hidden="true" />
+                      ) : (
+                        <Home className="h-4 w-4" aria-hidden="true" />
+                      )}
+                      {isSignedIn ? "Dashboard" : "Back home"}
+                    </Link>
 
-                {!checkingSession && !isSignedIn ? (
-                  <Link
-                    href="/sign-in"
-                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-orange-100 bg-[#FFF8EF] px-5 py-2 text-sm font-semibold text-[#151515] transition hover:border-[#FF7A1A] hover:bg-[#FF7A1A] hover:text-white"
-                  >
-                    Sign in
-                  </Link>
-                ) : null}
+                    {!isSignedIn ? (
+                      <Link
+                        href="/sign-in"
+                        className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-orange-100 bg-[#FFF8EF] px-5 py-2 text-sm font-semibold text-[#151515] transition hover:border-[#FF7A1A] hover:bg-[#FF7A1A] hover:text-white"
+                      >
+                        Sign in
+                      </Link>
+                    ) : null}
+                  </>
+                )}
               </div>
             </div>
 
