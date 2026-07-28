@@ -1,33 +1,61 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import AuthStatusCard from "@/components/AuthStatusCard";
+import { getCurrentUser, getFriendlySupabaseError, type AuthCheck } from "@/lib/auth-state";
 import { supabase } from "@/lib/supabase";
 
 export default function AuthCallbackPage() {
+  const [authState, setAuthState] = useState<AuthCheck | null>(null);
+
   useEffect(() => {
     async function sendUserToCorrectPage() {
-      const { data: userData } = await supabase.auth.getUser();
+      const userCheck = await getCurrentUser();
 
-      if (!userData.user) {
-        window.location.href = "/login";
+      if (!userCheck.ok) {
+        setAuthState(userCheck);
         return;
       }
 
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("onboarding_completed")
-        .eq("id", userData.user.id)
-        .single();
+      try {
+        const { data: profile, error } = await supabase
+          .from("profiles")
+          .select("onboarding_completed")
+          .eq("id", userCheck.user.id)
+          .single();
 
-      if (profile?.onboarding_completed) {
-        window.location.href = "/dashboard";
-      } else {
-        window.location.href = "/onboarding";
+        if (error) {
+          setAuthState({
+            ok: false,
+            reason: "unavailable",
+            title: "Could not finish sign in",
+            message: getFriendlySupabaseError(error),
+          });
+          return;
+        }
+
+        if (profile?.onboarding_completed) {
+          window.location.href = "/dashboard";
+        } else {
+          window.location.href = "/onboarding";
+        }
+      } catch {
+        setAuthState({
+          ok: false,
+          reason: "unavailable",
+          title: "Could not finish sign in",
+          message:
+            "Supabase did not respond after Google sign-in. Please try again in a moment.",
+        });
       }
     }
 
     sendUserToCorrectPage();
   }, []);
+
+  if (authState && !authState.ok) {
+    return <AuthStatusCard title={authState.title} message={authState.message} />;
+  }
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-orange-50 px-6">

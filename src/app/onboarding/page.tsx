@@ -1,4 +1,6 @@
 "use client"
+import AuthStatusCard from "@/components/AuthStatusCard";
+import { getCurrentUser, getFriendlySupabaseError, type AuthCheck } from "@/lib/auth-state";
 import { supabase } from "@/lib/supabase";
 import { useEffect, useState } from "react";
 
@@ -44,16 +46,21 @@ export default function OnboardingPage(){
   const [stores, setStores] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [checkingUser, setCheckingUser] = useState(true);
+  const [authState, setAuthState] = useState<AuthCheck | null>(null);
+  const [notice, setNotice] = useState("");
 
   useEffect(()=>{
     async function checkUser() {
-        const {data} = await supabase.auth.getUser();
+        const userCheck = await getCurrentUser();
 
-        if(!data.user){
-            window.location.href="/sign-in";
+        if(!userCheck.ok){
+            setAuthState(userCheck);
+            setCheckingUser(false);
             return;
         }
-    }    setCheckingUser(false);
+
+        setCheckingUser(false);
+    }
 
     checkUser();
   },[])
@@ -70,34 +77,44 @@ export default function OnboardingPage(){
   }
   async function handleFinishSetup() {
   setSaving(true);
+  setNotice("");
 
-  const { data: userData, error: userError } = await supabase.auth.getUser();
+  const userCheck = await getCurrentUser();
 
-  if (userError || !userData.user) {
-    alert("You need to be logged in first.");
-    window.location.href = "/login";
+  if (!userCheck.ok) {
+    setAuthState(userCheck);
+    setSaving(false);
     return;
   }
 
-  const { error } = await supabase.from("profiles").upsert({
-    id: userData.user.id,
-    email: userData.user.email,
-    equipment,
-    goals,
-    dietary_needs: dietaryNeeds,
-    stores,
-    onboarding_completed: true,
-    updated_at: new Date().toISOString(),
-  });
+  try {
+    const { error } = await supabase.from("profiles").upsert({
+      id: userCheck.user.id,
+      email: userCheck.user.email,
+      equipment,
+      goals,
+      dietary_needs: dietaryNeeds,
+      stores,
+      onboarding_completed: true,
+      updated_at: new Date().toISOString(),
+    });
 
-  setSaving(false);
+    setSaving(false);
 
-  if (error) {
-    alert(error.message);
+    if (error) {
+      setNotice(getFriendlySupabaseError(error));
+      return;
+    }
+  } catch {
+    setSaving(false);
+    setNotice("Supabase did not respond. Please try saving again in a moment.");
     return;
   }
 
   window.location.href = "/dashboard";
+}
+if (authState && !authState.ok) {
+  return <AuthStatusCard title={authState.title} message={authState.message} />;
 }
 if (checkingUser) {
   return (
@@ -169,7 +186,7 @@ return (
 
           <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm text-gray-500">
-              You can change these later in settings.
+              {notice || "You can change these later in settings."}
             </p>
 
            <button

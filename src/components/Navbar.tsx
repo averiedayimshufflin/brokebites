@@ -4,6 +4,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 import { Button } from "@/components/ui/button"
+import { getFriendlySupabaseError } from "@/lib/auth-state"
 
 export default function Navbar() {
   const pathname = usePathname()
@@ -29,8 +30,13 @@ export default function Navbar() {
           <Button
             variant="outline"
             onClick={async () => {
-              await supabase.auth.signOut()
-              window.location.href = "/"
+              try {
+                await supabase.auth.signOut()
+              } catch (error) {
+                console.warn(getFriendlySupabaseError(error))
+              } finally {
+                window.location.href = "/sign-in"
+              }
             }}
           >
             Sign Out

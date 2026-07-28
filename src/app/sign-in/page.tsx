@@ -1,9 +1,11 @@
 "use client";
 
 import { supabase } from "@/lib/supabase";
+import { isSupabaseConfigured } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { useState } from "react";
 import {
   Card,
   CardContent,
@@ -13,7 +15,16 @@ import {
 } from "@/components/ui/card";
 
 export default function SignInPage() {
+  const [notice, setNotice] = useState("");
+
   async function handleGoogleLogin() {
+    if (!isSupabaseConfigured) {
+      setNotice(
+        "Google sign-in is unavailable because Supabase environment variables are missing."
+      );
+      return;
+    }
+
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
@@ -22,7 +33,9 @@ export default function SignInPage() {
     });
 
     if (error) {
-      alert(error.message);
+      setNotice(
+        "Google sign-in could not start. Please check your connection and try again."
+      );
     }
   }
 
@@ -143,6 +156,12 @@ export default function SignInPage() {
                   >
                     Continue with Google
                   </Button>
+
+                  {notice && (
+                    <p className="rounded-2xl border border-orange-100 bg-orange-50 px-4 py-3 text-center text-sm leading-6 text-orange-800">
+                      {notice}
+                    </p>
+                  )}
 
                   <div className="relative py-2">
                     <div className="absolute inset-0 flex items-center">

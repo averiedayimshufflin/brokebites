@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import AuthStatusCard from "@/components/AuthStatusCard";
+import { getCurrentUser, getFriendlySupabaseError, type AuthCheck } from "@/lib/auth-state";
 import { supabase } from "@/lib/supabase";
 
 const quickFilters = [
@@ -145,6 +147,7 @@ export default function DashboardPage() {
   const [searchResults, setSearchResults] = useState<Recipe[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
+  const [authState, setAuthState] = useState<AuthCheck | null>(null);
 
   const [profile, setProfile] = useState<{
     equipment: string[];
@@ -155,42 +158,68 @@ export default function DashboardPage() {
 
   useEffect(() => {
     async function checkUser() {
-      const { data: userData } = await supabase.auth.getUser();
+      const userCheck = await getCurrentUser();
 
-      if (!userData.user) {
-        window.location.href = "/login";
+      if (!userCheck.ok) {
+        setAuthState(userCheck);
+        setLoading(false);
         return;
       }
 
-      setEmail(userData.user.email ?? null);
+      setEmail(userCheck.user.email ?? null);
 
-      const { data: profileData, error } = await supabase
-        .from("profiles")
-        .select("equipment, goals, dietary_needs, stores, onboarding_completed")
-        .eq("id", userData.user.id)
-        .single();
+      try {
+        const { data: profileData, error } = await supabase
+          .from("profiles")
+          .select("equipment, goals, dietary_needs, stores, onboarding_completed")
+          .eq("id", userCheck.user.id)
+          .single();
 
-      if (error || !profileData?.onboarding_completed) {
-        window.location.href = "/onboarding";
-        return;
+        if (error) {
+          setAuthState({
+            ok: false,
+            reason: "unavailable",
+            title: "Could not load your profile",
+            message: getFriendlySupabaseError(error),
+          });
+          setLoading(false);
+          return;
+        }
+
+        if (!profileData?.onboarding_completed) {
+          window.location.href = "/onboarding";
+          return;
+        }
+
+        setProfile({
+          equipment: profileData.equipment ?? [],
+          goals: profileData.goals ?? [],
+          dietary_needs: profileData.dietary_needs ?? [],
+          stores: profileData.stores ?? [],
+        });
+
+        setLoading(false);
+      } catch {
+        setAuthState({
+          ok: false,
+          reason: "unavailable",
+          title: "Could not load your dashboard",
+          message:
+            "Supabase did not respond. Your recipes are safe; try refreshing in a moment.",
+        });
+        setLoading(false);
       }
-
-      setProfile({
-        equipment: profileData.equipment ?? [],
-        goals: profileData.goals ?? [],
-        dietary_needs: profileData.dietary_needs ?? [],
-        stores: profileData.stores ?? [],
-      });
-
-      setLoading(false);
     }
 
     checkUser();
   }, []);
 
   async function handleLogout() {
-    await supabase.auth.signOut();
-    window.location.href = "/login";
+    try {
+      await supabase.auth.signOut();
+    } finally {
+      window.location.href = "/sign-in";
+    }
   }
 
   function handleFindMeals() {
@@ -265,6 +294,12 @@ export default function DashboardPage() {
   const filteredRecipes = activeFilter
     ? baseRecipes.filter((recipe) => recipe.tags.includes(activeFilter))
     : baseRecipes;
+
+  if (authState && !authState.ok) {
+    return (
+      <AuthStatusCard title={authState.title} message={authState.message} />
+    );
+  }
 
   return (
     <main className="min-h-screen bg-orange-50 px-6 py-8">

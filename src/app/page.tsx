@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import Link from "next/link";
 import DemoFilterTags from "@/components/DemoFilterTags";
 import SignUpComponent from "@/components/SignUpComponent";
 import SpinningCard from "@/components/SpinningCard";
@@ -40,7 +41,12 @@ export default function Home() {
               <span>Smartbot</span>
             </div>
 
-           
+            <Link
+              href="/sign-in"
+              className="rounded-full bg-[#151515] px-5 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-[#238247]"
+            >
+              Sign in
+            </Link>
           </nav>
 
           <div className="relative z-10 grid items-end gap-10 lg:grid-cols-[1.1fr_0.9fr]">
@@ -130,9 +136,10 @@ export default function Home() {
           transition={{ delay: 0.7, duration: 0.7, ease: "easeOut" }}
           className="relative overflow-hidden rounded-[2rem] border border-black/5 bg-[#EAF5EC] p-6 shadow-[0_24px_70px_rgba(35,130,71,0.12)] sm:p-8"
         >
+          
           <div className="absolute right-[-80px] top-[-80px] h-56 w-56 rounded-full bg-[#238247]/10 blur-3xl" />
           <div className="absolute bottom-[-90px] left-[-90px] h-64 w-64 rounded-full bg-[#FF7A1A]/10 blur-3xl" />
-
+          
           <div className="relative z-10 mb-10 flex items-start justify-between gap-6">
             <div>
               <p className="mb-3 text-xs font-semibold uppercase tracking-[0.24em] text-[#FF7A1A]">
@@ -290,30 +297,7 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="relative z-10 rounded-[1.5rem] border border-green-100 bg-white p-5">
-            <div className="mb-5 flex items-center justify-between gap-4">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#238247]">
-                  Account access
-                </p>
-
-                <h3 className="mt-2 text-xl font-semibold text-[#151515]">
-                  Join BrokeBites
-                </h3>
-              </div>
-
-              <div className="hidden rounded-full bg-[#EAF5EC] px-4 py-2 text-xs font-semibold text-[#238247] sm:block">
-                Save meals
-              </div>
-            </div>
-
-            <motion.div
-              whileHover={{ y: -6 }}
-              transition={{ type: "spring", stiffness: 220, damping: 20 }}
-            >
-              <SignUpComponent />
-            </motion.div>
-          </div>
+         
         </motion.div>
       </section>
     </main>
