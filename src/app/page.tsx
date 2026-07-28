@@ -1,12 +1,31 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import DemoFilterTags from "@/components/DemoFilterTags";
 import SignUpComponent from "@/components/SignUpComponent";
 import SpinningCard from "@/components/SpinningCard";
+import { getCurrentUser } from "@/lib/auth-state";
 
 export default function Home() {
+  const [checkingSession, setCheckingSession] = useState(true);
+
+  useEffect(() => {
+    async function redirectSignedInUser() {
+      const userCheck = await getCurrentUser();
+
+      if (userCheck.ok) {
+        window.location.href = "/dashboard";
+        return;
+      }
+
+      setCheckingSession(false);
+    }
+
+    redirectSignedInUser();
+  }, []);
+
   const fadeUp = {
     hidden: {
       opacity: 0,
@@ -17,6 +36,17 @@ export default function Home() {
       y: 0,
     },
   };
+
+  if (checkingSession) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[#F8F4EC] px-6 font-[family-name:var(--font-inter)] text-[#151515]">
+        <section className="rounded-[2rem] bg-white p-8 text-center shadow-[0_24px_70px_rgba(0,0,0,0.06)]">
+          <p className="text-sm font-semibold text-[#FF7A1A]">BrokeBites</p>
+          <h1 className="mt-2 text-2xl font-bold">Checking your session...</h1>
+        </section>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen overflow-hidden bg-[#F8F4EC] font-[family-name:var(--font-inter)] text-[#151515]">

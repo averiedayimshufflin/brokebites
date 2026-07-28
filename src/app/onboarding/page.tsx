@@ -46,6 +46,7 @@ export default function OnboardingPage(){
   const [stores, setStores] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [checkingUser, setCheckingUser] = useState(true);
+  const [profileLoadFailed, setProfileLoadFailed] = useState(false);
   const [authState, setAuthState] = useState<AuthCheck | null>(null);
   const [notice, setNotice] = useState("");
 
@@ -59,7 +60,35 @@ export default function OnboardingPage(){
             return;
         }
 
-        setCheckingUser(false);
+        try {
+            const { data: profileData, error } = await supabase
+                .from("profiles")
+                .select("equipment, goals, dietary_needs, stores")
+                .eq("id", userCheck.user.id)
+                .maybeSingle();
+
+            if (error) {
+                setProfileLoadFailed(true);
+                setNotice(getFriendlySupabaseError(error));
+                setCheckingUser(false);
+                return;
+            }
+
+            if (profileData) {
+                setEquipment(profileData.equipment ?? []);
+                setGoals(profileData.goals ?? []);
+                setDietaryNeeds(profileData.dietary_needs ?? []);
+                setStores(profileData.stores ?? []);
+            }
+
+            setCheckingUser(false);
+        } catch {
+            setProfileLoadFailed(true);
+            setNotice(
+                "Supabase did not respond, so your existing food profile was not loaded. Please refresh before saving changes."
+            );
+            setCheckingUser(false);
+        }
     }
 
     checkUser();
@@ -76,6 +105,13 @@ export default function OnboardingPage(){
     }
   }
   async function handleFinishSetup() {
+  if (profileLoadFailed) {
+    setNotice(
+      "Your existing food profile could not be loaded. Please refresh before saving so your preferences are not overwritten."
+    );
+    return;
+  }
+
   setSaving(true);
   setNotice("");
 
@@ -191,7 +227,7 @@ return (
 
            <button
   onClick={handleFinishSetup}
-  disabled={saving}
+  disabled={saving || profileLoadFailed}
   className="rounded-xl bg-orange-500 px-6 py-3 font-semibold text-white transition hover:bg-orange-600 disabled:opacity-60"
 >
   {saving ? "Saving..." : "Finish setup"}
