@@ -30,6 +30,7 @@ import {
   getFriendlySupabaseError,
   type AuthCheck,
 } from "@/lib/auth-state"
+import { checkClientRateLimit, getRateLimitMessage } from "@/lib/rate-limit"
 import { supabase } from "@/lib/supabase"
 
 type PantryItem = {
@@ -230,6 +231,17 @@ export default function PantryPage() {
       return
     }
 
+    const rateLimit = checkClientRateLimit({
+      key: `pantry-add:${userId}`,
+      maxAttempts: 12,
+      windowMs: 60_000,
+    })
+
+    if (!rateLimit.allowed) {
+      setNotice(getRateLimitMessage("adding pantry items", rateLimit.retryAfterSeconds))
+      return
+    }
+
     setSavingPantry(true)
     setNotice("")
 
@@ -264,6 +276,17 @@ export default function PantryPage() {
   async function removePantryItem(id: string) {
     if (!userId) {
       setNotice("Sign in with Google before changing pantry items.")
+      return
+    }
+
+    const rateLimit = checkClientRateLimit({
+      key: `pantry-remove:${userId}`,
+      maxAttempts: 20,
+      windowMs: 60_000,
+    })
+
+    if (!rateLimit.allowed) {
+      setNotice(getRateLimitMessage("removing pantry items", rateLimit.retryAfterSeconds))
       return
     }
 

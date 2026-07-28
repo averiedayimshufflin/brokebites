@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { useState } from "react";
+import { checkClientRateLimit, getRateLimitMessage } from "@/lib/rate-limit";
 import {
   Card,
   CardContent,
@@ -18,6 +19,17 @@ export default function SignInPage() {
   const [notice, setNotice] = useState("");
 
   async function handleGoogleLogin() {
+    const rateLimit = checkClientRateLimit({
+      key: "google-sign-in",
+      maxAttempts: 5,
+      windowMs: 60_000,
+    });
+
+    if (!rateLimit.allowed) {
+      setNotice(getRateLimitMessage("starting sign in", rateLimit.retryAfterSeconds));
+      return;
+    }
+
     if (!isSupabaseConfigured) {
       setNotice(
         "Google sign-in is unavailable because Supabase environment variables are missing."

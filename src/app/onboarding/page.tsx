@@ -1,6 +1,7 @@
 "use client"
 import AuthStatusCard from "@/components/AuthStatusCard";
 import { getCurrentUser, getFriendlySupabaseError, type AuthCheck } from "@/lib/auth-state";
+import { checkClientRateLimit, getRateLimitMessage } from "@/lib/rate-limit";
 import { supabase } from "@/lib/supabase";
 import { useEffect, useState } from "react";
 
@@ -205,6 +206,18 @@ export default function OnboardingPage(){
     if (isFoodProfileEmpty(nextProfile)) {
       setSaving(false);
       setNotice("Pick at least one food profile option before saving.");
+      return;
+    }
+
+    const rateLimit = checkClientRateLimit({
+      key: `profile-save:${userCheck.user.id}`,
+      maxAttempts: 8,
+      windowMs: 60_000,
+    });
+
+    if (!rateLimit.allowed) {
+      setSaving(false);
+      setNotice(getRateLimitMessage("saving your profile", rateLimit.retryAfterSeconds));
       return;
     }
 
