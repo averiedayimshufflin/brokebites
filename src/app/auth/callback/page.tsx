@@ -4,12 +4,44 @@ import { useEffect, useState } from "react";
 import AuthStatusCard from "@/components/AuthStatusCard";
 import { type AuthCheck } from "@/lib/auth-state";
 import { chooseAutomaticRoute } from "@/lib/route-choice";
+import { supabase } from "@/lib/supabase";
 
 export default function AuthCallbackPage() {
   const [authState, setAuthState] = useState<AuthCheck | null>(null);
 
   useEffect(() => {
     async function sendUserToCorrectPage() {
+      const currentUrl = new URL(window.location.href);
+      const callbackError =
+        currentUrl.searchParams.get("error_description") ||
+        currentUrl.searchParams.get("error");
+      const authCode = currentUrl.searchParams.get("code");
+
+      if (callbackError) {
+        setAuthState({
+          ok: false,
+          reason: "unauthorized",
+          title: "Could not finish sign in",
+          message: callbackError,
+        });
+        return;
+      }
+
+      if (authCode) {
+        const { error } = await supabase.auth.exchangeCodeForSession(authCode);
+
+        if (error) {
+          setAuthState({
+            ok: false,
+            reason: "unauthorized",
+            title: "Could not finish sign in",
+            message:
+              "Google sent you back to BrokeBites, but the session could not be saved. Please try signing in again.",
+          });
+          return;
+        }
+      }
+
       const routeChoice = await chooseAutomaticRoute();
 
       if (!routeChoice.ok) {
