@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import DemoFilterTags from "@/components/DemoFilterTags";
-import SignUpComponent from "@/components/SignUpComponent";
 import SpinningCard from "@/components/SpinningCard";
 import { chooseAutomaticRoute } from "@/lib/route-choice";
 
