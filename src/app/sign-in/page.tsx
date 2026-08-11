@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -9,11 +9,37 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { finishOAuthSessionFromUrl } from "@/lib/oauth-session";
 import { checkClientRateLimit, getRateLimitMessage } from "@/lib/rate-limit";
+import { chooseAutomaticRoute } from "@/lib/route-choice";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 export default function SignInPage() {
   const [notice, setNotice] = useState("");
+  const [checkingSession, setCheckingSession] = useState(true);
+
+  useEffect(() => {
+    async function redirectSignedInUser() {
+      const oauthResult = await finishOAuthSessionFromUrl();
+
+      if (!oauthResult.ok) {
+        setNotice(oauthResult.message);
+        setCheckingSession(false);
+        return;
+      }
+
+      const routeChoice = await chooseAutomaticRoute();
+
+      if (routeChoice.ok && routeChoice.route !== "/sign-in") {
+        window.location.href = routeChoice.route;
+        return;
+      }
+
+      setCheckingSession(false);
+    }
+
+    redirectSignedInUser();
+  }, []);
 
   async function handleGoogleLogin() {
     const rateLimit = checkClientRateLimit({
@@ -46,6 +72,19 @@ export default function SignInPage() {
         "Google sign-in could not start. Please check your connection and try again."
       );
     }
+  }
+
+  if (checkingSession) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-orange-50 px-6">
+        <section className="rounded-2xl bg-white p-8 text-center shadow-sm">
+          <p className="text-sm font-semibold text-orange-600">BrokeBites</p>
+          <h1 className="mt-2 text-2xl font-bold text-gray-950">
+            Checking your session...
+          </h1>
+        </section>
+      </main>
+    );
   }
 
   return (

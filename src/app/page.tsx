@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import DemoFilterTags from "@/components/DemoFilterTags";
-import SignUpComponent from "@/components/SignUpComponent";
 import SpinningCard from "@/components/SpinningCard";
+import { finishOAuthSessionFromUrl } from "@/lib/oauth-session";
 import { chooseAutomaticRoute } from "@/lib/route-choice";
 
 export default function Home() {
@@ -13,6 +13,13 @@ export default function Home() {
 
   useEffect(() => {
     async function redirectSignedInUser() {
+      const oauthResult = await finishOAuthSessionFromUrl();
+
+      if (!oauthResult.ok) {
+        setCheckingSession(false);
+        return;
+      }
+
       const routeChoice = await chooseAutomaticRoute();
 
       if (routeChoice.ok && routeChoice.route !== "/sign-in") {
